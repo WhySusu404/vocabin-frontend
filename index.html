@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocaBin - Vocabulary Learning Platform</title>
+    
+    <!-- Shoelace CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css" />
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="./src/styles/main.scss">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+    <!-- Root application container -->
+    <div id="app">
+        <!-- Loading spinner -->
+        <div id="loading" class="loading-container">
+            <sl-spinner style="font-size: 3rem; --track-width: 4px;"></sl-spinner>
+            <p>Loading VocaBin...</p>
+        </div>
+        
+        <!-- Main application content will be injected here -->
+        <div id="content" style="display: none;">
+            <!-- Navigation will be injected here -->
+            <nav id="navbar"></nav>
+            
+            <!-- Main content area -->
+            <main id="main-content" class="main-content">
+                <!-- Page content will be rendered here by the router -->
+            </main>
+            
+            <!-- Footer -->
+            <footer id="footer" class="footer">
+                <p>&copy; 2024 VocaBin. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Toast container for notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Shoelace JS -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
+    
+    <!-- Main App JavaScript -->
+    <script type="module" src="./src/app.js"></script>
+</body>
+</html>
