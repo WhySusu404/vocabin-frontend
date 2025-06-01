@@ -238,6 +238,29 @@ class VocabularyService {
   // ==== WRONG WORDS MANAGEMENT ====
 
   /**
+   * Add a word to wrong words list
+   * NOTE: Backend endpoint not implemented yet
+   */
+  async addWordToWrongWords(wordData) {
+    console.warn('⚠️ addWordToWrongWords: Backend endpoint not available yet');
+    return { success: false, message: 'Endpoint not implemented' };
+    
+    /* 
+    // Uncomment when backend endpoint is ready:
+    try {
+      const response = await this.api.request('/api/wrong-words', {
+        method: 'POST',
+        body: JSON.stringify(wordData)
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to add word to wrong words:', error);
+      throw error;
+    }
+    */
+  }
+
+  /**
    * Get user's wrong words
    */
   async getWrongWords(options = {}) {

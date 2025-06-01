@@ -34,7 +34,7 @@ export default class ListeningPage {
 
         <div class="stats-card">
           <div class="stat-item">
-            <span class="stat-label">Input</span>
+            <span class="stat-label">Words</span>
             <span class="stat-value" id="input-count">${this.session.inputCount}</span>
           </div>
         </div>
@@ -105,7 +105,7 @@ export default class ListeningPage {
         </div>
 
         <div class="chapter-card">
-          <h3>Sentences</h3>
+          <h3>Process</h3>
           <p class="chapter-number">400</p>
         </div>
 

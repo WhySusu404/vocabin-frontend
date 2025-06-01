@@ -14,6 +14,7 @@ export default class VocabularyPage {
       timeElapsed: 0,
       inputCount: 0,
       correctCount: 0,
+      wrongCount: 0,
       accuracy: 0,
       isActive: false
     };
@@ -25,6 +26,9 @@ export default class VocabularyPage {
     this.isTypingWord = false;
     this.keyboardHandler = null;
     this.sessionStorageKey = null; // Will be set when dictionaryId is available
+    this.currentWordFailureCount = 0;
+    this.maxFailuresPerWord = 3;
+    this.audioEnabled = true;
   }
 
   render() {
@@ -84,7 +88,7 @@ export default class VocabularyPage {
               <div class="word-info">
                 <h3 class="word-title" id="word-title">Loading...</h3>
                 <div class="word-actions">
-                  <button class="audio-btn" id="play-audio-btn">
+                  <button class="audio-btn" id="play-audio-btn" style="${this.audioEnabled ? '' : 'display: none;'}">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polygon points="5,3 19,12 5,21"></polygon>
                     </svg>
@@ -108,7 +112,7 @@ export default class VocabularyPage {
 
   renderRightPanel() {
     return `
-      <div class="vocabulary-right-panel" style="width: 200px;">
+      <div class="vocabulary-right-panel">
         <div class="list-info-card">
           <h3>Dictionary</h3>
           <p class="list-title" id="dictionary-name">${this.dictionary?.display_name || 'Loading...'}</p>
@@ -166,6 +170,9 @@ export default class VocabularyPage {
     // Bind events and setup
     this.bindEvents();
     this.setupKeyboardListeners();
+    
+    // Set initial audio button visibility
+    this.updateAudioButtonVisibility();
     
     console.log('📚 VocabularyPage mounted with dictionary:', this.dictionaryId);
   }
@@ -229,8 +236,15 @@ export default class VocabularyPage {
 
     // Settings toggles
     audioSwitch?.addEventListener('sl-change', (e) => {
+      this.audioEnabled = e.target.checked;
       const statusEl = audioSwitch.parentElement.querySelector('.setting-status');
       statusEl.textContent = e.target.checked ? 'ON' : 'OFF';
+      
+      // Show/hide audio button based on setting
+      const audioBtn = document.getElementById('play-audio-btn');
+      if (audioBtn) {
+        audioBtn.style.display = this.audioEnabled ? '' : 'none';
+      }
     });
 
     hintSwitch?.addEventListener('sl-change', (e) => {
@@ -290,7 +304,12 @@ export default class VocabularyPage {
   }
 
   updateWordDisplay() {
-    if (!this.currentWord) return;
+    if (!this.currentWord) {
+      console.warn('⚠️ No current word to display');
+      return;
+    }
+    
+    console.log('🖼️ Updating word display for:', this.currentWord.name);
     
     // Update word display - Show Chinese translation and pronunciation
     const wordTitle = document.getElementById('word-title');
@@ -299,7 +318,9 @@ export default class VocabularyPage {
     if (wordTitle) {
       // Display the Chinese translation as the main title
       const chineseTranslations = this.currentWord.trans || [];
-      wordTitle.textContent = chineseTranslations.join(' / ') || 'No translation available';
+      const newTitle = chineseTranslations.join(' / ') || 'No translation available';
+      wordTitle.textContent = newTitle;
+      console.log('📖 Updated word title to:', newTitle);
     }
     
     if (wordMeaning) {
@@ -309,7 +330,7 @@ export default class VocabularyPage {
       
       let pronunciationHtml = '';
       if (usPhone || ukPhone) {
-        pronunciationHtml = '<div class="pronunciation-container">';
+        pronunciationHtml = '<div class="pronunciation-container" style="margin-top: 15px; margin-bottom: 15px;">';
         if (usPhone) {
           pronunciationHtml += `<span class="pronunciation-item">🇺🇸 US: /${usPhone}/</span>`;
         }
@@ -319,22 +340,29 @@ export default class VocabularyPage {
         pronunciationHtml += '</div>';
       }
       
-      wordMeaning.innerHTML = `
-        ${pronunciationHtml}
-      `;
+      wordMeaning.innerHTML = pronunciationHtml;
+      console.log('🔊 Updated pronunciation display');
     }
   }
 
   async loadNextWord() {
     try {
+      // Clear any existing visual state first
+      this.clearCurrentWordDisplay();
+      
       const response = await this.vocabularyService.getCurrentWord(this.dictionaryId);
+      console.log('📝 Got new word:', response.word?.name);
+      
       this.currentWord = response.word;
       this.progress = response.dictionary_progress;
+      
+      // Reset failure count for new word
+      this.currentWordFailureCount = 0;
       
       // Update progress info
       this.updateProgressDisplay();
       
-      // Update word display
+      // Update word display - Make sure this happens
       this.updateWordDisplay();
 
       // Setup typing interface - user types the English word
@@ -342,22 +370,54 @@ export default class VocabularyPage {
       this.isTypingWord = true;
       this.createVisualWordDisplay();
 
-      // Clear feedback
+      // Clear feedback and show ready state
       const feedback = document.getElementById('word-feedback');
-      if (feedback) feedback.textContent = '';
+      if (feedback) {
+        feedback.textContent = '';
+        feedback.className = 'word-feedback';
+      }
       
       // Save session state
       this.saveSessionState();
       
     } catch (error) {
-      console.error('Failed to load next word:', error);
+      console.error('❌ Failed to load next word:', error);
       this.showErrorMessage('Failed to load next word. Please try again.');
+      
+      // If loading next word fails, try to restore typing state
+      setTimeout(() => {
+        this.isTypingWord = true;
+      }, 2000);
+    }
+  }
+
+  clearCurrentWordDisplay() {
+    // Clear any visual feedback
+    const wordCharacters = document.getElementById('word-characters');
+    if (wordCharacters) {
+      wordCharacters.classList.remove('shake');
+    }
+    
+    // Clear any character states
+    const charElements = document.querySelectorAll('.char');
+    charElements.forEach(char => {
+      char.classList.remove('correct', 'error');
+    });
+    
+    // Clear feedback
+    const feedback = document.getElementById('word-feedback');
+    if (feedback) {
+      feedback.textContent = '';
+      feedback.className = 'word-feedback';
     }
   }
 
   createVisualWordDisplay() {
     const visualWordInput = document.getElementById('visual-word-input');
-    if (!visualWordInput || !this.currentWord) return;
+    if (!visualWordInput || !this.currentWord) {
+      console.warn('⚠️ Cannot create visual word display - missing elements');
+      return;
+    }
 
     // User types the English word (name field)
     const targetWord = this.currentWord.name.toLowerCase();
@@ -370,6 +430,7 @@ export default class VocabularyPage {
         ${charactersHtml}
       </div>
     `;
+    
   }
 
   handleCharacterInput(e) {
@@ -404,13 +465,24 @@ export default class VocabularyPage {
   }
 
   handleWrongCharacter(typedChar) {
+    // Increment failure count for current word
+    this.currentWordFailureCount++;
+    
     // First, mark the current character as error
     this.markCharacterError(this.currentTypingPosition);
     
-    // After a brief delay, shake and reset
-    setTimeout(() => {
-      this.shakeWordAndReset();
-    }, 200);
+    // Check if max failures reached
+    if (this.currentWordFailureCount >= this.maxFailuresPerWord) {
+      // Add word to wrong words and move to next
+      setTimeout(() => {
+        this.handleMaxFailures();
+      }, 200);
+    } else {
+      // After a brief delay, shake and reset
+      setTimeout(() => {
+        this.shakeWordAndReset();
+      }, 200);
+    }
   }
 
   markCharacterError(index) {
@@ -448,6 +520,8 @@ export default class VocabularyPage {
 
   resetWordProgress() {
     this.currentTypingPosition = 0;
+    // Reset failure count when user resets progress manually
+    this.currentWordFailureCount = 0;
     const charElements = document.querySelectorAll('.char');
     charElements.forEach(char => {
       char.classList.remove('correct', 'error');
@@ -461,12 +535,137 @@ export default class VocabularyPage {
     }
   }
 
+  async handleMaxFailures() {
+    
+    this.isTypingWord = false;
+    this.session.inputCount++;
+    this.session.wrongCount++;
+
+    // Clear the current word display immediately
+    const wordCharacters = document.getElementById('word-characters');
+    if (wordCharacters) {
+      wordCharacters.classList.add('shake');
+    }
+
+    const feedback = document.getElementById('word-feedback');
+    if (feedback) {
+      feedback.textContent = `Too many attempts! Moving to next word...`;
+      feedback.className = 'word-feedback incorrect';
+    }
+
+    const failedWord = this.currentWord?.name; // Store the failed word name
+
+    try {
+      
+      // Submit as incorrect answer to advance in the backend
+      await this.vocabularyService.submitWordAnswer({
+        dictionaryId: this.dictionaryId,
+        word: this.currentWord.name,
+        wordIndex: this.currentWord.index,
+        isCorrect: false,
+        userAnswer: '',
+        responseTime: 0
+      });
+      
+
+      this.updateStats();
+
+      // Show final message briefly then load new word
+      setTimeout(() => {
+        if (feedback) {
+          feedback.textContent = `Word "${failedWord}" failed too many times. Loading next word...`;
+        }
+      }, 500);
+
+      // Load next word after brief delay
+      setTimeout(async () => {
+        await this.loadNextWordWithRetry(failedWord);
+      }, 1000);
+
+    } catch (error) {
+      console.error('❌ Failed to handle max failures:', error);
+      this.showErrorMessage('Failed to process answer. Please try again.');
+      // Still try to load next word even if there was an error
+      setTimeout(async () => {
+        await this.loadNextWordWithRetry(failedWord);
+      }, 1000);
+    }
+  }
+
+  async loadNextWordWithRetry(previousWord, maxRetries = 3) {
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        
+        // Clear any existing visual state first
+        this.clearCurrentWordDisplay();
+        
+        const response = await this.vocabularyService.getCurrentWord(this.dictionaryId);
+        
+        // Check if we got a different word
+        if (response.word && response.word.name !== previousWord) {
+          this.currentWord = response.word;
+          this.progress = response.dictionary_progress;
+          
+          // Reset failure count for new word
+          this.currentWordFailureCount = 0;
+          
+          // Update progress info
+          this.updateProgressDisplay();
+          
+          // Update word display
+          this.updateWordDisplay();
+
+          // Setup typing interface
+          this.currentTypingPosition = 0;
+          this.isTypingWord = true;
+          this.createVisualWordDisplay();
+
+          // Clear feedback
+          const feedback = document.getElementById('word-feedback');
+          if (feedback) {
+            feedback.textContent = '';
+            feedback.className = 'word-feedback';
+          }
+          
+          // Save session state
+          this.saveSessionState();
+          return; // Success!
+          
+        } else {
+          console.warn(`⚠️ API returned same word "${response.word?.name}", retrying...`);
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+        }
+        
+      } catch (error) {
+        console.error(`❌ Attempt ${attempt} failed:`, error);
+        if (attempt === maxRetries) {
+          console.error('❌ All attempts failed, falling back to regular loadNextWord');
+          await this.loadNextWord();
+          return;
+        }
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+    
+    console.warn('⚠️ Could not get different word after retries, using what we have');
+    // If we can't get a different word, at least reset the current one
+    this.currentWordFailureCount = 0;
+    this.currentTypingPosition = 0;
+    this.isTypingWord = true;
+    this.createVisualWordDisplay();
+  }
+
   async completeWord(isCorrect) {
     this.isTypingWord = false;
     this.session.inputCount++;
     
     if (isCorrect) {
       this.session.correctCount++;
+    } else {
+      this.session.wrongCount++;
     }
 
     try {
@@ -579,7 +778,7 @@ export default class VocabularyPage {
   }
 
   updateStats() {
-    // Update words count
+    // Update words count (total attempts)
     const inputCount = document.getElementById('input-count');
     if (inputCount) inputCount.textContent = this.session.inputCount;
 
@@ -587,9 +786,10 @@ export default class VocabularyPage {
     const correctCount = document.getElementById('correct-count');
     if (correctCount) correctCount.textContent = this.session.correctCount;
 
-    // Update accuracy
-    this.session.accuracy = this.session.inputCount > 0 
-      ? Math.round((this.session.correctCount / this.session.inputCount) * 100)
+    // Update accuracy - now includes both correct and wrong in total
+    const totalAttempts = this.session.correctCount + this.session.wrongCount;
+    this.session.accuracy = totalAttempts > 0 
+      ? Math.round((this.session.correctCount / totalAttempts) * 100)
       : 0;
     
     const accuracyDisplay = document.getElementById('accuracy-display');
@@ -639,6 +839,8 @@ export default class VocabularyPage {
       currentTypingPosition: this.currentTypingPosition,
       isTypingWord: this.isTypingWord,
       startTime: this.startTime,
+      currentWordFailureCount: this.currentWordFailureCount,
+      audioEnabled: this.audioEnabled,
       timestamp: Date.now()
     };
     
@@ -670,14 +872,31 @@ export default class VocabularyPage {
         timeElapsed: sessionData.timeElapsed || 0,
         inputCount: sessionData.inputCount || 0,
         correctCount: sessionData.correctCount || 0,
+        wrongCount: sessionData.wrongCount || 0,
         accuracy: sessionData.accuracy || 0,
-        isActive: false // Don't auto-resume active state
+        isActive: false
       };
       
       this.currentWord = sessionData.currentWord;
       this.progress = sessionData.progress; // Restore progress object
       this.currentTypingPosition = sessionData.currentTypingPosition || 0;
       this.isTypingWord = false; // User needs to click to resume
+      this.currentWordFailureCount = sessionData.currentWordFailureCount || 0;
+      this.audioEnabled = sessionData.audioEnabled !== undefined ? sessionData.audioEnabled : true;
+      
+      // Update audio switch state
+      const audioSwitch = document.getElementById('audio-switch');
+      if (audioSwitch) {
+        audioSwitch.checked = this.audioEnabled;
+        const statusEl = audioSwitch.parentElement.querySelector('.setting-status');
+        statusEl.textContent = this.audioEnabled ? 'ON' : 'OFF';
+      }
+      
+      // Update audio button visibility
+      const audioBtn = document.getElementById('play-audio-btn');
+      if (audioBtn) {
+        audioBtn.style.display = this.audioEnabled ? '' : 'none';
+      }
       
       // Update UI with restored stats
       this.updateStats();
@@ -743,5 +962,22 @@ export default class VocabularyPage {
     this.saveSessionState();
     
     console.log('VocabularyPage cleanup completed');
+  }
+
+  updateAudioButtonVisibility() {
+    const audioBtn = document.getElementById('play-audio-btn');
+    const audioSwitch = document.getElementById('audio-switch');
+    
+    if (audioBtn) {
+      audioBtn.style.display = this.audioEnabled ? '' : 'none';
+    }
+    
+    if (audioSwitch) {
+      audioSwitch.checked = this.audioEnabled;
+      const statusEl = audioSwitch.parentElement.querySelector('.setting-status');
+      if (statusEl) {
+        statusEl.textContent = this.audioEnabled ? 'ON' : 'OFF';
+      }
+    }
   }
 } 
