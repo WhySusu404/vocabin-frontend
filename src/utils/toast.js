@@ -2,6 +2,11 @@
 export function showToast(message, variant = 'primary', duration = 3000) {
   const toastContainer = document.getElementById('toast-container');
   
+  if (!toastContainer) {
+    console.error('Toast container not found');
+    return;
+  }
+  
   // Create toast element
   const toast = document.createElement('sl-alert');
   toast.variant = variant;
@@ -16,7 +21,14 @@ export function showToast(message, variant = 'primary', duration = 3000) {
   toastContainer.appendChild(toast);
 
   // Show the toast
-  toast.toast();
+  toast.show();
+
+  // Auto-hide after duration
+  if (duration > 0) {
+    setTimeout(() => {
+      toast.hide();
+    }, duration);
+  }
 
   // Remove from DOM after animation
   toast.addEventListener('sl-after-hide', () => {

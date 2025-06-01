@@ -1,92 +1,178 @@
-import apiService from '../services/api.js';
-import { showToast } from '../utils/toast.js';
+import apiService from '../services/api.js'
+import { mockUser, mockUserProgress, mockWordLists, mockListeningMaterials } from '../data/mockData.js'
 
 export class DashboardPage {
-  constructor() {
-    this.user = null;
-  }
-
-  async render() {
-    try {
-      // Get user profile from API
-      const profileResponse = await apiService.getProfile();
-      this.user = profileResponse.user;
-    } catch (error) {
-      showToast('Failed to load profile', 'danger');
-      window.location.hash = '#auth';
-      return '';
+    constructor() {
+        this.user = null
+        this.userProgress = mockUserProgress
     }
 
-    return `
-      <div class="page-container">
-        <div class="card">
-          <div class="form-header">
-            <h1>Welcome, ${this.user.firstName}! 👋</h1>
-            <p>Your vocabulary learning journey starts here.</p>
-          </div>
-          
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
-            <div class="card">
-              <h3>📊 Your Statistics</h3>
-              <div style="margin-top: 1rem;">
-                <p><strong>Words Learned:</strong> ${this.user.statistics.totalWordsLearned}</p>
-                <p><strong>Current Streak:</strong> ${this.user.statistics.currentStreak} days</p>
-                <p><strong>Longest Streak:</strong> ${this.user.statistics.longestStreak} days</p>
-                <p><strong>Total Study Time:</strong> ${this.user.statistics.totalStudyTime} minutes</p>
-              </div>
-            </div>
-            
-            <div class="card">
-              <h3>⚙️ Learning Preferences</h3>
-              <div style="margin-top: 1rem;">
-                <p><strong>Difficulty:</strong> ${this.user.learningPreferences.difficulty}</p>
-                <p><strong>Study Time:</strong> ${this.user.learningPreferences.studyTime} min/day</p>
-                <p><strong>Reminders:</strong> ${this.user.learningPreferences.reminderEnabled ? 'Enabled' : 'Disabled'}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="card">
-            <h3>🚧 Coming Soon</h3>
-            <p>Vocabulary lessons, listening exercises, reading comprehension, and more features are being developed!</p>
-            <p style="margin-top: 1rem; color: var(--text-secondary);">
-              <strong>Your Role:</strong> ${this.user.role}<br>
-              <strong>Account Status:</strong> ${this.user.isActive ? 'Active' : 'Inactive'}<br>
-              <strong>Member Since:</strong> ${new Date(this.user.registrationDate).toLocaleDateString()}
-            </p>
-          </div>
-          
-          <div class="form-actions">
-            <sl-button
-              variant="default"
-              size="large"
-              id="logout-btn"
-            >
-              Sign Out
-            </sl-button>
-          </div>
+    async render() {
+        try {
+            // Get user profile from API
+            const profileResponse = await apiService.getProfile()
+            this.user = profileResponse.user
+        } catch (error) {
+            // Use mock data for development
+            this.user = mockUser
+            console.log('Using mock data for dashboard')
+        }
+
+        return `
+      <div class="dashboard-container">
+        <div class="dashboard-header">
+          <h1>Welcome back, ${this.user.firstName}!</h1>
+        </div>
+        
+        <div class="learning-modes-grid">
+          ${this.renderVocabularyCard()}
+          ${this.renderListeningCard()}
+          ${this.renderReadingCard()}
         </div>
       </div>
-    `;
-  }
+    `
+    }
 
-  mount() {
-    this.bindEvents();
-  }
+    renderVocabularyCard() {
+        const progress = this.userProgress.vocabulary
+        const progressPercentage = Math.round((progress.wordsLearned / progress.totalWords) * 100)
+        
+        return `
+          <div class="learning-mode-card">
+            <div class="card-header vocabulary-header">
+              <h2>VOCABULARY</h2>
+            </div>
+            <div class="card-content">
+              <div class="current-learning-section">
+                <h3>Current Learning</h3>
+                <div class="learning-info">
+                  <div class="info-row">
+                    <span class="label">List Name</span>
+                    <span class="value">IELTS Conversation word list</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Total Words</span>
+                    <span class="value">${progress.totalWords}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Finished</span>
+                    <span class="value">${progress.wordsLearned}</span>
+                  </div>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                </div>
+              </div>
+              <button 
+                class="enter-button vocabulary-enter"
+                id="vocabulary-enter-btn"
+              >
+                ENTER
+              </button>
+            </div>
+          </div>
+        `
+    }
 
-  bindEvents() {
-    const logoutBtn = document.getElementById('logout-btn');
-    
-    logoutBtn?.addEventListener('click', async () => {
-      try {
-        await apiService.logout();
-        showToast('Logged out successfully', 'success');
-        window.location.hash = '#auth';
-      } catch (error) {
-        showToast('Logout failed', 'danger');
-      }
-    });
-  }
+    renderListeningCard() {
+        const progress = this.userProgress.listening
+        const progressPercentage = Math.round((progress.sentencesCompleted / progress.totalSentences) * 100)
+        
+        return `
+          <div class="learning-mode-card">
+            <div class="card-header listening-header">
+              <h2>LISTENING</h2>
+            </div>
+            <div class="card-content">
+              <div class="current-learning-section">
+                <h3>Current Learning</h3>
+                <div class="learning-info">
+                  <div class="info-row">
+                    <span class="label">Material Name</span>
+                    <span class="value">BBC Daily English Talk</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Total Sentence</span>
+                    <span class="value">${progress.totalSentences}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Finished</span>
+                    <span class="value">${progress.sentencesCompleted}</span>
+                  </div>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                </div>
+              </div>
+              <button 
+                class="enter-button listening-enter"
+                id="listening-enter-btn"
+              >
+                ENTER
+              </button>
+            </div>
+          </div>
+        `
+    }
+
+    renderReadingCard() {
+        const progress = this.userProgress.reading
+        const progressPercentage = Math.round((progress.articlesCompleted / progress.totalArticles) * 100)
+        
+        return `
+          <div class="learning-mode-card">
+            <div class="card-header reading-header">
+              <h2>READING</h2>
+            </div>
+            <div class="card-content">
+              <div class="current-learning-section">
+                <h3>Current Learning</h3>
+                <div class="learning-info">
+                  <div class="info-row">
+                    <span class="label">Created Articles & Practice</span>
+                    <span class="value">${progress.totalArticles}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Finished</span>
+                    <span class="value">${progress.articlesCompleted}</span>
+                  </div>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                </div>
+              </div>
+              <button 
+                class="enter-button reading-enter"
+                id="reading-enter-btn"
+              >
+                ENTER
+              </button>
+            </div>
+          </div>
+        `
+    }
+
+    mount() {
+        this.bindEvents()
+    }
+
+    bindEvents() {
+        const vocabularyBtn = document.getElementById('vocabulary-enter-btn')
+        const listeningBtn = document.getElementById('listening-enter-btn')
+        const readingBtn = document.getElementById('reading-enter-btn')
+
+        vocabularyBtn?.addEventListener('click', () => {
+            window.location.hash = '#vocabulary'
+        })
+
+        listeningBtn?.addEventListener('click', () => {
+            window.location.hash = '#listening'
+        })
+
+        readingBtn?.addEventListener('click', () => {
+            window.location.hash = '#reading'
+        })
+    }
 }
 
-export default DashboardPage; 
+export default DashboardPage 

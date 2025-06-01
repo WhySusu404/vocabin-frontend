@@ -1,5 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import apiService from '../services/api.js';
+import router from '../utils/router.js';
 import logoSvgUrl from 'url:../assets/login-logo.svg';
 import loginPngUrl from 'url:../assets/login.png';
 
@@ -178,12 +179,13 @@ export class AuthPage {
 
         try {
             submitBtn.loading = true;
+            let response;
 
             if (this.isLoginMode) {
-                await apiService.login({ email, password });
+                response = await apiService.login({ email, password });
                 showToast('Login successful!', 'success');
             } else {
-                await apiService.register({ 
+                response = await apiService.register({ 
                     email, 
                     password,
                     firstName: 'User',
@@ -192,10 +194,28 @@ export class AuthPage {
                 showToast('Account created successfully!', 'success');
             }
             
-            // Redirect to dashboard
-            setTimeout(() => {
-                window.location.hash = '#dashboard';
-            }, 1500);
+            // Check user role and redirect appropriately
+            const user = apiService.getCurrentUser();
+            
+            if (user && user.role === 'admin') {
+                // For admin users, set up admin session properly
+                const { default: adminAuthService } = await import('../services/adminAuth.js');
+                
+                // Set up admin authentication state
+                adminAuthService.adminUser = user;
+                adminAuthService.isAdminAuthenticated = true;
+                
+                // Store admin session
+                localStorage.setItem('vocabin_admin_session', JSON.stringify({
+                    user: user,
+                    timestamp: Date.now()
+                }));
+                
+                console.log('🔐 Admin session set up from regular login');
+                router.navigate('admin/dashboard');
+            } else {
+                router.navigate('dashboard');
+            }
 
         } catch (error) {
             console.error('Auth error:', error);
