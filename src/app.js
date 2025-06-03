@@ -1,6 +1,6 @@
 import router from './utils/router.js';
 import { showToast } from './utils/toast.js';
-import dashLogo from 'url:./assets/dashboard-logo.svg';
+import dashLogo from './assets/dashboard-logo.svg';
 
 class VocaBinApp {
   constructor() {
