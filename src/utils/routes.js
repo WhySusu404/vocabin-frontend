@@ -230,6 +230,45 @@ export const testRoutes = [
     title: 'Change Password - VocaBin',
     layout: 'user',
     requiresAuth: true
+  },
+  {
+    path: 'admin',
+    component: AdminLoginPage,
+    title: 'Admin Login - VocaBin',
+    layout: 'auth',
+    requiresAuth: false
+  },
+  {
+    path: 'admin/dashboard',
+    component: AdminDashboardPage,
+    title: 'Admin Dashboard - VocaBin',
+    layout: 'admin',
+    requiresAuth: true,
+    requiresAdmin: true
+  },
+  {
+    path: 'admin/users',
+    component: UserManagementPage,
+    title: 'User Management - VocaBin',
+    layout: 'admin',
+    requiresAuth: true,
+    requiresAdmin: true
+  },
+  {
+    path: 'admin/content',
+    component: ContentManagementPage,
+    title: 'Content Management - VocaBin',
+    layout: 'admin',
+    requiresAuth: true,
+    requiresAdmin: true
+  },
+  {
+    path: 'admin/reports',
+    component: ReportManagementPage,
+    title: 'Error Reports - VocaBin',
+    layout: 'admin',
+    requiresAuth: true,
+    requiresAdmin: true
   }
 ];
 

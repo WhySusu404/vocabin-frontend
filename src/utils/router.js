@@ -43,7 +43,6 @@ class Router {
    * Start the router (called after routes are registered)
    */
   start() {
-    console.log('🚀 Router starting with', this.routes.size, 'routes');
     this.isInitialized = true;
     this.handleRoute();
   }
@@ -110,11 +109,9 @@ class Router {
     const currentParts = currentPath.split('/').filter(part => part);
     const routeParts = routePath.split('/').filter(part => part);
 
-    console.log(`🔍 parseRoute: currentPath="${currentPath}" -> parts:`, currentParts);
-    console.log(`🔍 parseRoute: routePath="${routePath}" -> parts:`, routeParts);
 
     if (currentParts.length !== routeParts.length) {
-      console.log(`🔍 parseRoute: Length mismatch ${currentParts.length} !== ${routeParts.length}`);
+      
       return null;
     }
 
@@ -124,21 +121,21 @@ class Router {
       const routePart = routeParts[i];
       const currentPart = currentParts[i];
       
-      console.log(`🔍 parseRoute: Comparing "${routePart}" vs "${currentPart}"`);
+      
       
       if (routePart.startsWith(':')) {
         // Parameter
         const paramName = routePart.slice(1);
         params[paramName] = currentPart;
-        console.log(`🔍 parseRoute: Parameter ${paramName} = ${currentPart}`);
+        
       } else if (routePart !== currentPart) {
         // Static part doesn't match
-        console.log(`🔍 parseRoute: Static part mismatch "${routePart}" !== "${currentPart}"`);
+        
         return null;
       }
     }
 
-    console.log(`🔍 parseRoute: Match found with params:`, params);
+    
     return { params };
   }
 
@@ -167,17 +164,15 @@ class Router {
     // Split path and query string
     const [pathname, queryString] = path.split('?');
     
-    console.log('🔍 Finding route for path:', pathname);
-    console.log('🔍 Query string:', queryString);
-    console.log('🔍 Available routes:', this.routes.size);
+    
     
     for (const [routePath, route] of this.routes) {
-      console.log(`🔍 Checking route: ${routePath} against ${pathname}`);
+      
       const match = this.parseRoute(pathname, routePath);
-      console.log(`🔍 Match result:`, match);
+      
       
       if (match) {
-        console.log('🔍 Found matching route:', route);
+        
         
         // Parse query parameters from the provided query string
         const query = queryString ? this.parseQuery('?' + queryString) : {};
@@ -190,7 +185,7 @@ class Router {
       }
     }
     
-    console.log('🔍 No matching route found');
+    
     return null;
   }
 
@@ -238,7 +233,7 @@ class Router {
       finalPath = await this.getDefaultRoute();
     }
     
-    console.log('🔄 Router handleRoute called, original path:', path, 'final path:', finalPath, 'isEmptyRoute:', isEmptyRoute);
+    
     
     // Store whether this was an explicit auth navigation or default
     this.isDefaultedToAuth = isEmptyRoute && finalPath === 'auth';
@@ -249,39 +244,39 @@ class Router {
     // Find matching route
     const route = this.findRoute(fullFinalPath);
     
-    console.log('🔄 Found route:', route);
+
     
     if (!route) {
       // Route not found, redirect to default
-      console.log('🔄 Route not found, redirecting to auth');
+      
       this.navigate('auth', { replace: true });
       return;
     }
 
     // Check permissions
-    console.log('🔄 Checking permissions for route:', route.path);
+    
     const hasPermission = await this.checkPermissions(route);
-    console.log('🔄 Has permission:', hasPermission);
+    
     
     if (!hasPermission) {
-      console.log('🔄 Permission denied, redirecting...');
+      
       if (route.requiresAdmin) {
-        console.log('🔄 Admin route denied, redirecting to admin login');
+        
         this.navigate('admin', { replace: true });
       } else {
-        console.log('🔄 Auth required, redirecting to auth');
+        
         this.navigate('auth', { replace: true });
       }
       return;
     }
 
-    console.log('🔄 Permission granted, proceeding with route...');
+    
 
     // Call before route change hook
     if (this.beforeRouteChange) {
-      console.log('🔄 Calling beforeRouteChange hook...');
+      
       const canProceed = await this.beforeRouteChange(route, this.currentRoute);
-      console.log('🔄 beforeRouteChange result:', canProceed);
+      
       if (!canProceed) return;
     }
 
@@ -303,7 +298,7 @@ class Router {
     // Update page title
     document.title = route.title;
 
-    console.log('🔄 Calling afterRouteChange hook...');
+    
 
     // Call after route change hook
     if (this.afterRouteChange) {
@@ -315,7 +310,7 @@ class Router {
       detail: { route, path: finalPath }
     }));
     
-    console.log('🔄 Route handling complete for:', finalPath);
+    
   }
 
   /**
@@ -336,21 +331,21 @@ class Router {
         
         // If user is admin and admin session exists, go to admin dashboard
         if (user && user.role === 'admin' && adminAuthService.isAuthenticated()) {
-          console.log('🔄 Authenticated admin user, defaulting to admin dashboard');
+          
           return 'admin/dashboard';
         }
         
         // Regular authenticated user goes to dashboard
-        console.log('🔄 Authenticated user, defaulting to dashboard');
+        
         return 'dashboard';
       }
       
       // Not authenticated, go to auth
-      console.log('🔄 Not authenticated, defaulting to auth');
+
       return 'auth';
       
     } catch (error) {
-      console.error('🔄 Error determining default route:', error);
+      
       return 'auth';
     }
   }

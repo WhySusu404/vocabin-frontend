@@ -22,11 +22,9 @@ export default class DashboardHistoryPage {
 
   mount() {
     // Add any event listeners or initialization here
-    console.log('DashboardHistory page mounted');
   }
 
   cleanup() {
     // Clean up event listeners when leaving the page
-    console.log('DashboardHistory page cleanup');
   }
 } 

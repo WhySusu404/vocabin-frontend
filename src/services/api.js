@@ -13,9 +13,6 @@ class ApiService {
     this.token = this.getPersistedToken();
     this.refreshToken = this.storage.getItem('refreshToken') || this.devStorage.getItem('refreshToken');
     
-    console.log(`🔧 API Service initialized in ${this.isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
-    console.log(`💾 Using ${this.isDevelopment ? 'sessionStorage + localStorage fallback' : 'localStorage'} for token persistence`);
-    
     // Auto-refresh token in development
     if (this.isDevelopment && this.token) {
       this.startTokenRefreshTimer();
@@ -32,7 +29,6 @@ class ApiService {
     let token = this.storage.getItem('authToken');
     if (!token) {
       token = this.devStorage.getItem('authToken');
-      console.log('🔄 Token retrieved from localStorage fallback');
     }
     
     // If still no token, try to restore from stored credentials
@@ -51,7 +47,6 @@ class ApiService {
     if (storedCreds) {
       try {
         const credentials = JSON.parse(storedCreds);
-        console.log('🔄 [restoreFromCredentials] Attempting to restore auth from stored credentials...');
         
         // No longer using setTimeout here, the caller (isAuthenticatedAsync) handles delays.
         // Return a Promise that resolves based on the async login attempt.
@@ -60,14 +55,13 @@ class ApiService {
           await this.login(credentials, { skipCredentialStorage: true, silent: true });
           // After login attempt, check if token is now set
           if (this.token) {
-            console.log('✅ [restoreFromCredentials] Authentication restored, token is set.');
             return true;
           } else {
-            console.log('❌ [restoreFromCredentials] Failed to restore auth (no token after login attempt).');
+            
             return false;
           }
         } catch (error) {
-          console.log('❌ [restoreFromCredentials] Failed to restore auth (error during login):', error.message);
+          
           return false;
         }
       } catch (error) {
@@ -76,7 +70,6 @@ class ApiService {
         return false; // Return false if parsing fails
       }
     }
-    console.log('[restoreFromCredentials] No stored credentials found.');
     return false; // Return false if no stored credentials
   }
 
@@ -87,22 +80,19 @@ class ApiService {
     // Refresh token every 20 hours (before 24h expiry)
     this.refreshTimer = setInterval(async () => {
       try {
-        console.log('🔄 Auto-refreshing token in development...');
         await this.refreshAuthToken();
       } catch (error) {
-        console.log('❌ Auto-refresh failed:', error.message);
+        
         this.clearTokenRefreshTimer();
       }
     }, 20 * 60 * 60 * 1000); // 20 hours
     
-    console.log('⏰ Token auto-refresh timer started (20h interval)');
   }
 
   clearTokenRefreshTimer() {
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
       this.refreshTimer = null;
-      console.log('⏰ Token refresh timer cleared');
     }
   }
 
@@ -131,7 +121,6 @@ class ApiService {
         if (data.refreshToken) {
           this.setRefreshToken(data.refreshToken);
         }
-        console.log('✅ Token refreshed successfully');
         return data;
       } else {
         throw new Error('No token in refresh response');
@@ -152,7 +141,6 @@ class ApiService {
     if (storedCreds) {
       try {
         const credentials = JSON.parse(storedCreds);
-        console.log('🔄 [tryReAuthWithStoredCredentials] Re-authenticating with stored dev credentials from localStorage...');
         return this.login(credentials, { skipCredentialStorage: true });
       } catch (error) {
         console.error('[tryReAuthWithStoredCredentials] Failed to re-authenticate with stored credentials:', error);
@@ -160,13 +148,11 @@ class ApiService {
         this.devStorage.removeItem('devCredentials');
       }
     }
-    console.log('❌ [tryReAuthWithStoredCredentials] No stored dev credentials found in localStorage.');
     return Promise.reject(new Error('No stored credentials for re-auth'));
   }
 
   // Mock authentication for testing
   mockLogin(credentials) {
-    console.log('🎭 Using mock authentication for:', credentials.email);
     
     // Mock demo accounts
     const mockUsers = {
@@ -188,7 +174,6 @@ class ApiService {
 
     const user = mockUsers[credentials.email];
     if (user && (credentials.password === 'admin123' || credentials.password === 'learner123')) {
-      console.log('✅ Mock authentication successful for:', user.email, 'Role:', user.role);
       
       // Create a mock JWT token
       const mockToken = btoa(JSON.stringify({
@@ -197,14 +182,13 @@ class ApiService {
       btoa(JSON.stringify(user)) + '.' + 
       btoa('mock-signature');
       
-      console.log('🎫 Generated mock token:', mockToken);
       
       return Promise.resolve({ 
         token: mockToken,
         user: user 
       });
     } else {
-      console.log('❌ Mock authentication failed for:', credentials.email);
+      
       return Promise.reject(new Error('Invalid credentials'));
     }
   }
@@ -220,10 +204,8 @@ class ApiService {
         this.devStorage.setItem('authToken', token);
       }
       
-      console.log(`💾 Token saved to ${this.isDevelopment ? 'sessionStorage + localStorage' : 'localStorage'}`);
       // Debug: Log the decoded token
       const user = this.getCurrentUser();
-      console.log('Decoded user from token:', user);
       
       // Start auto-refresh in development
       if (this.isDevelopment) {
@@ -235,7 +217,6 @@ class ApiService {
         this.devStorage.removeItem('authToken');
       }
       this.clearTokenRefreshTimer();
-      console.log('Token removed');
     }
   }
 
@@ -250,21 +231,18 @@ class ApiService {
         this.devStorage.setItem('refreshToken', refreshToken);
       }
       
-      console.log(`💾 Refresh token saved to ${this.isDevelopment ? 'sessionStorage + localStorage' : 'localStorage'}`);
     } else {
       this.storage.removeItem('refreshToken');
       if (this.isDevelopment) {
         this.devStorage.removeItem('refreshToken');
       }
-      console.log('Refresh token removed');
     }
   }
 
   // Store credentials for development re-authentication
   storeDevCredentials(credentials) {
     if (this.isDevelopment) {
-      this.devStorage.setItem('devCredentials', JSON.stringify(credentials));
-      console.log('🔧 Dev credentials stored for auto re-auth');
+      this.devStorage.setItem('devCredentials', JSON.stringify(credentials));       
     }
   }
 
@@ -294,7 +272,6 @@ class ApiService {
       
       // Handle 401 - try to refresh token or clear invalid token
       if (response.status === 401 && this.token && !endpoint.includes('/auth/')) {
-        console.log('🔄 Received 401, attempting token refresh...');
         try {
           await this.refreshAuthToken();
           // Retry request with new token
@@ -352,7 +329,6 @@ class ApiService {
   }
 
   async login(credentials, options = {}) {
-    console.log('API login attempt with:', credentials);
     
     try {
       const response = await this.request('/api/auth/login', {
@@ -361,7 +337,6 @@ class ApiService {
       });
 
       if (!options.silent) {
-        console.log('API login response:', response);
       }
 
       // Backend returns 'accessToken' instead of 'token'
@@ -381,7 +356,6 @@ class ApiService {
         }
         
         if (!options.silent) {
-          console.log('✅ Using backend authentication with token:', token);
         }
         return { ...response, token }; // Normalize the response
       } else {
@@ -391,7 +365,7 @@ class ApiService {
 
     } catch (error) {
       if (!options.silent) {
-        console.log('Backend login failed, trying mock auth:', error.message);
+        
       }
       // Try mock authentication if backend fails or doesn't return token
       const mockResponse = await this.mockLogin(credentials);
@@ -421,7 +395,6 @@ class ApiService {
       // Clear stored dev credentials
       if (this.isDevelopment) {
         this.devStorage.removeItem('devCredentials');
-        console.log('🔧 Dev credentials cleared');
       }
     }
   }
@@ -430,7 +403,6 @@ class ApiService {
     // If we're using mock auth or have a mock token, return mock profile data
     const currentUser = this.getCurrentUser();
     if (this.useMockAuth || (currentUser && currentUser.email && currentUser.email.includes('@vocabin.com'))) {
-      console.log('📝 Using mock profile data for user:', currentUser?.email);
       
       return Promise.resolve({
         user: {
@@ -460,7 +432,6 @@ class ApiService {
     // If we're using mock auth, simulate update
     const currentUser = this.getCurrentUser();
     if (this.useMockAuth || (currentUser && currentUser.email && currentUser.email.includes('@vocabin.com'))) {
-      console.log('📝 Using mock profile update for user:', currentUser?.email);
       
       // Update the current user data in the token
       const updatedUser = { ...currentUser, ...updateData };
@@ -491,7 +462,6 @@ class ApiService {
     // If we're using mock auth, simulate password change
     const currentUser = this.getCurrentUser();
     if (this.useMockAuth || (currentUser && currentUser.email && currentUser.email.includes('@vocabin.com'))) {
-      console.log('📝 Using mock password change for user:', currentUser?.email);
       
       // Simulate validation
       if (!passwordData.currentPassword || !passwordData.newPassword) {
@@ -530,7 +500,6 @@ class ApiService {
       if (storedCreds) {
         // Log that credentials exist, but don't attempt restore here.
         // isAuthenticatedAsync will handle it.
-        console.log('🔄 isAuthenticated: No token, but stored credentials exist. Async check will attempt restore.');
       }
       // Do not initiate restoreFromCredentials here.
       // Return based on current token status.
@@ -551,13 +520,12 @@ class ApiService {
       return false;
     }
 
-    console.log(`🔄 Auth check failed, attempting restore/retry in ${delay}ms... (${retries} retries left)`);
     await new Promise(resolve => setTimeout(resolve, delay));
 
     // Try to restore credentials if they exist
     const storedCreds = this.devStorage.getItem('devCredentials');
     if (storedCreds && !this.token) { // Check for token again, in case it was set by another process
-      console.log('🔄 isAuthenticatedAsync: Attempting to restore from credentials...');
+      
       try {
         // Directly call and await restoreFromCredentials
         // restoreFromCredentials itself now needs to be able to set the token
@@ -565,10 +533,9 @@ class ApiService {
         // We'll make restoreFromCredentials return a boolean indicating success.
         const restored = await this.restoreFromCredentials();
         if (restored) {
-          console.log('✅ isAuthenticatedAsync: Authentication restored successfully.');
           return true; // Token should now be set
         } else {
-          console.log('⚠️ isAuthenticatedAsync: Credential restoration attempt did not lead to authentication.');
+            
         }
       } catch (error) {
         console.error('❌ isAuthenticatedAsync: Error during credential restoration:', error);
@@ -581,7 +548,7 @@ class ApiService {
     }
 
     // If still not authenticated, retry
-    console.log(`🔄 isAuthenticatedAsync: Still not authenticated, proceeding to next retry.`);
+    
     return this.isAuthenticatedAsync(retries - 1, delay * 2);
   }
 
@@ -589,14 +556,14 @@ class ApiService {
   isAdmin() {
     const user = this.getCurrentUser();
     const isAdmin = user && user.role === 'admin';
-    console.log('isAdmin check:', isAdmin, 'user:', user);
+    
     return isAdmin;
   }
 
   // Get current user data from token
   getCurrentUser() {
     if (!this.token) {
-      console.log('No token found for getCurrentUser');
+      
       return null;
     }
 
@@ -609,7 +576,7 @@ class ApiService {
       }
 
       const payload = JSON.parse(atob(tokenParts[1]));
-      console.log('Decoded token payload:', payload);
+      
       return payload;
     } catch (error) {
       console.error('Failed to decode token:', error);
@@ -664,22 +631,16 @@ if (apiService.isDevelopment) {
   window.vocabinDebug = {
     api: apiService,
     checkToken: () => {
-      console.log('🔍 Token Debug Info:');
-      console.log('Token:', apiService.token);
-      console.log('User:', apiService.getCurrentUser());
-      console.log('Expiration:', apiService.getTokenExpiration());
-      console.log('Time left:', apiService.getTimeUntilExpiration());
-      console.log('Is authenticated:', apiService.isAuthenticated());
-      console.log('Is admin:', apiService.isAdmin());
+      
     },
     refreshToken: () => apiService.refreshAuthToken(),
     clearStorage: () => {
       apiService.storage.clear();
-      console.log('🧹 Development storage cleared');
+      
     }
   };
   
-  console.log('🔧 Development debug utilities available at window.vocabinDebug');
+  
 }
 
 export default apiService; 

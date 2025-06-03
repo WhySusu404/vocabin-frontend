@@ -41,6 +41,29 @@ export class AuthPage {
 
                             <!-- Auth Form -->
                             <form class="auth-form" id="authForm">
+                                <div class="form-group" id="nameFields" style="display: none;">
+                                    <div class="form-row">
+                                        <div class="form-column">
+                                            <label for="firstName">First Name <span class="required">*</span></label>
+                                            <sl-input 
+                                                id="firstName" 
+                                                type="text" 
+                                                placeholder="Enter your first name"
+                                                size="large">
+                                            </sl-input>
+                                        </div>
+                                        <div class="form-column">
+                                            <label for="lastName">Last Name <span class="required">*</span></label>
+                                            <sl-input 
+                                                id="lastName" 
+                                                type="text" 
+                                                placeholder="Enter your last name"
+                                                size="large">
+                                            </sl-input>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="form-group">
                                     <label for="email">Email <span class="required">*</span></label>
                                     <sl-input 
@@ -107,6 +130,9 @@ export class AuthPage {
             </div>
         `;
         this.attachEventListeners();
+        
+        // Show/hide name fields based on mode
+        this.updateNameFieldsVisibility();
     }
 
     attachEventListeners() {
@@ -150,12 +176,22 @@ export class AuthPage {
             `;
         }
 
+        // Update name fields visibility
+        this.updateNameFieldsVisibility();
+
         // Re-attach event listener for the new toggle link
         const newToggleLink = this.container.querySelector('#authModeToggle');
         newToggleLink.addEventListener('click', (e) => {
             e.preventDefault();
             this.toggleAuthMode();
         });
+    }
+
+    updateNameFieldsVisibility() {
+        const nameFields = this.container.querySelector('#nameFields');
+        if (nameFields) {
+            nameFields.style.display = this.isLoginMode ? 'none' : 'block';
+        }
     }
 
     async handleSubmit() {
@@ -177,6 +213,20 @@ export class AuthPage {
             return;
         }
 
+        // Additional validation for signup mode
+        if (!this.isLoginMode) {
+            const firstNameInput = this.container.querySelector('#firstName');
+            const lastNameInput = this.container.querySelector('#lastName');
+            
+            const firstName = firstNameInput?.value.trim();
+            const lastName = lastNameInput?.value.trim();
+            
+            if (!firstName || !lastName) {
+                showToast('Please fill in your first and last name', 'warning');
+                return;
+            }
+        }
+
         try {
             submitBtn.loading = true;
             let response;
@@ -185,11 +235,14 @@ export class AuthPage {
                 response = await apiService.login({ email, password });
                 showToast('Login successful!', 'success');
             } else {
+                const firstNameInput = this.container.querySelector('#firstName');
+                const lastNameInput = this.container.querySelector('#lastName');
+                
                 response = await apiService.register({ 
                     email, 
                     password,
-                    firstName: 'User',
-                    lastName: 'Demo' 
+                    firstName: firstNameInput.value.trim(),
+                    lastName: lastNameInput.value.trim()
                 });
                 showToast('Account created successfully!', 'success');
             }

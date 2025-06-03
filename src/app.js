@@ -10,38 +10,27 @@ class VocaBinApp {
   }
 
   async init() {
-    console.log('🚀 VocaBinApp init starting...');
     
     // Show loading
     this.showLoading();
     
     // Wait for Shoelace to load
-    console.log('🚀 Waiting for Shoelace...');
     await this.waitForShoelace();
-    console.log('✅ Shoelace ready');
     
     // Restore authentication state before router starts
-    console.log('🚀 Restoring authentication state...');
     await this.restoreAuthenticationState();
-    console.log('✅ Authentication state restored');
     
     // Initialize router with all routes
-    console.log('🚀 Initializing routes...');
     await this.initRoutes();
-    console.log('✅ Routes initialized');
     
     // Set up router hooks
-    console.log('🚀 Setting up router hooks...');
     this.setupRouterHooks();
-    console.log('✅ Router hooks set up');
     
     // Hide loading and show content
     this.hideLoading();
     
     // Start router
-    console.log('🚀 Starting router...');
     router.start();
-    console.log('✅ Router started');
   }
 
   async waitForShoelace() {
@@ -57,39 +46,27 @@ class VocaBinApp {
   }
 
   async initRoutes() {
-    console.log('📦 Importing routes...');
     
     try {
       // Import routes dynamically with error handling
       const routesModule = await import('./utils/routes.js');
       const testRoutes = routesModule.testRoutes;
       
-      console.log('✅ Routes imported successfully:', testRoutes?.length);
-      console.log('📦 Routes array:', testRoutes);
+      console.log('📝 Registering routes:', testRoutes.map(r => r.path));
       
       if (!testRoutes || testRoutes.length === 0) {
-        console.error('❌ No routes found in testRoutes');
         return;
       }
       
       // Register all routes with the router
-      console.log('Registering routes:', testRoutes.length);
       
       testRoutes.forEach(route => {
-        console.log('Registering route:', route.path, route.component);
+        console.log('✅ Registering route:', route.path);
         router.register(route.path, route);
       });
       
-      // Debug: Check what routes are actually registered
-      console.log('Routes registered in router:', router.routes.size);
-      for (let [path, route] of router.routes) {
-        console.log(`  - ${path}: ${route.component.name || route.component}`);
-      }
+      console.log('🎯 All routes registered successfully');
       
-      // Manual test: Try to find the listening route
-      console.log('🧪 Manual test: Finding listening route...');
-      const testRoute = router.findRoute('listening');
-      console.log('🧪 Test result:', testRoute);
       
     } catch (error) {
       console.error('❌ Failed to import or register routes:', error);
@@ -99,6 +76,8 @@ class VocaBinApp {
   setupRouterHooks() {
     // Before route change - cleanup and validation
     router.beforeEach(async (toRoute, fromRoute) => {
+      console.log('🔄 Router beforeEach:', { toRoute: toRoute.path, fromRoute: fromRoute?.path });
+      
       // Cleanup current page if it has cleanup method
       if (this.currentPage && this.currentPage.cleanup) {
         this.currentPage.cleanup();
@@ -109,15 +88,23 @@ class VocaBinApp {
       const { default: adminAuthService } = await import('./services/adminAuth.js');
       const isUserAuthenticated = await apiService.isAuthenticatedAsync();
       
+      console.log('🔍 Auth status check:', { 
+        isUserAuthenticated, 
+        toPath: toRoute.path,
+        requiresAdmin: toRoute.requiresAdmin 
+      });
+      
       // Only redirect authenticated users away from auth if they explicitly navigated there
       // Don't redirect if they were defaulted to auth by the router due to empty hash
       if (toRoute.path === 'auth' && isUserAuthenticated && !router.isDefaultedToAuth) {
-        console.log('🔄 Authenticated user explicitly navigating to auth, redirecting to appropriate dashboard');
+        console.log('🚀 Redirecting authenticated user from auth page');
         const user = apiService.getCurrentUser();
         if (user && user.role === 'admin') {
+          console.log('👑 Admin user, redirecting to admin dashboard');
           router.navigate('admin/dashboard', { replace: true });
           return false;
         } else {
+          console.log('👤 Regular user, redirecting to dashboard');
           router.navigate('dashboard', { replace: true });
           return false;
         }
@@ -125,10 +112,16 @@ class VocaBinApp {
       
       // Check admin route protection
       if (toRoute.requiresAdmin) {
-        if (!adminAuthService.isAuthenticated()) {
-          console.log('Admin authentication required, redirecting to admin login');
+        console.log('🔐 Checking admin authentication for protected route');
+        const isAdminAuthenticated = adminAuthService.isAuthenticated();
+        console.log('🔐 Admin auth result:', isAdminAuthenticated);
+        
+        if (!isAdminAuthenticated) {
+          console.log('❌ Admin not authenticated, redirecting to admin login');
           router.navigate('admin', { replace: true });
           return false;
+        } else {
+          console.log('✅ Admin authenticated, allowing access to', toRoute.path);
         }
       }
       
@@ -137,13 +130,14 @@ class VocaBinApp {
 
     // After route change - render new page
     router.afterEach(async (route) => {
+      console.log('✅ Router afterEach - rendering route:', route.path);
       await this.renderRoute(route);
     });
   }
 
   async renderRoute(route) {
     try {
-      console.log('Rendering route:', route);
+      
       
       // Handle different layout types
       switch (route.layout) {
@@ -288,10 +282,7 @@ class VocaBinApp {
 
   async loadComponent(ComponentClass, route = null) {
     try {
-      console.log('Loading component:', ComponentClass);
-      console.log('Component type:', typeof ComponentClass);
-      console.log('Component name:', ComponentClass?.name);
-      console.log('Component toString:', ComponentClass.toString().substring(0, 100));
+      
       
       // Handle dynamic imports - improved detection
       if (typeof ComponentClass === 'function') {
@@ -300,10 +291,10 @@ class VocaBinApp {
         // and doesn't have a class name
         if (!ComponentClass.name && (funcString.includes('import(') || funcString.includes('require('))) {
           try {
-            console.log('Detected dynamic import, calling function...');
+            
             const module = await ComponentClass();
             ComponentClass = module.default || module;
-            console.log('Dynamic import resolved to:', ComponentClass);
+            
           } catch (importError) {
             console.error('Dynamic import failed:', importError);
             throw importError;
@@ -325,7 +316,11 @@ class VocaBinApp {
         // Add other parameterized components as needed
       }
       
-      console.log('Creating new instance of:', ComponentClass.name);
+      // Pass route to pages that need to access query parameters
+      if (route && (ComponentClass.name === 'VocabularyPage' || ComponentClass.name === 'ListeningPage')) {
+        return new ComponentClass(route);
+      }
+      
       return new ComponentClass();
       
     } catch (error) {
@@ -534,7 +529,7 @@ class VocaBinApp {
   }
 
   async restoreAuthenticationState() {
-    console.log('🔄 Restoring authentication state...');
+    
     
     try {
       // Import services
@@ -546,13 +541,13 @@ class VocaBinApp {
       
       if (isUserAuthenticated) {
         const user = apiService.getCurrentUser();
-        console.log('✅ Regular user authentication restored:', user?.email, 'Role:', user?.role);
+        
         
         // If user is admin, also set up admin session
         if (user && user.role === 'admin') {
           // Check if admin session already exists
           if (!adminAuthService.isAuthenticated()) {
-            console.log('🔄 Setting up admin session for admin user...');
+            
             adminAuthService.adminUser = user;
             adminAuthService.isAdminAuthenticated = true;
             
@@ -562,9 +557,9 @@ class VocaBinApp {
               timestamp: Date.now()
             }));
             
-            console.log('✅ Admin session restored from user token');
+            
           } else {
-            console.log('✅ Admin session already exists');
+            
           }
         }
       } else {

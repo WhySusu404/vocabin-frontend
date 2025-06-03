@@ -1,13 +1,20 @@
 import VocabularyService from '../services/vocabularyService.js';
 
 export default class VocabularyPage {
-  constructor() {
+  constructor(route = null) {
     this.name = 'VocabularyPage';
     this.vocabularyService = new VocabularyService();
-    this.dictionaryId = null;
+    this.dictionaries = []; // Available dictionaries
+    this.selectedDictionaryId = null; // Currently selected dictionary
     this.dictionary = null;
     this.currentWord = null;
     this.progress = null;
+    
+    // Parse dictionary ID from route query parameters
+    if (route && route.query && route.query.dictionary) {
+      this.selectedDictionaryId = route.query.dictionary;
+      console.log('🔍 DEBUG: Dictionary ID from route:', this.selectedDictionaryId);
+    }
     
     // Session state
     this.session = {
@@ -25,10 +32,17 @@ export default class VocabularyPage {
     this.currentTypingPosition = 0;
     this.isTypingWord = false;
     this.keyboardHandler = null;
-    this.sessionStorageKey = null; // Will be set when dictionaryId is available
+    this.sessionStorageKey = null; // Will be set when selectedDictionaryId is available
     this.currentWordFailureCount = 0;
     this.maxFailuresPerWord = 3;
     this.audioEnabled = true;
+  }
+
+  // Helper method to get user ID for session storage
+  async getUserId() {
+    const { default: apiService } = await import('../services/api.js');
+    const currentUser = apiService.getCurrentUser();
+    return currentUser ? (currentUser.userId || currentUser.id || currentUser._id || currentUser.email) : 'anonymous';
   }
 
   render() {
@@ -113,9 +127,17 @@ export default class VocabularyPage {
   renderRightPanel() {
     return `
       <div class="vocabulary-right-panel">
-        <div class="list-info-card">
+        <div class="dictionary-selector-card">
           <h3>Dictionary</h3>
-          <p class="list-title" id="dictionary-name">${this.dictionary?.display_name || 'Loading...'}</p>
+          <div class="dictionary-dropdown-container">
+            <select id="dictionary-select" class="dictionary-dropdown">
+              ${this.dictionaries.map(dict => 
+                `<option value="${dict.id}" ${dict.id === this.selectedDictionaryId ? 'selected' : ''}>
+                  ${dict.display_name} (${dict.progress ? dict.progress.completed_words || 0 : 0}/${dict.total_words})
+                </option>`
+              ).join('')}
+            </select>
+          </div>
         </div>
 
         <div class="chapter-card">
@@ -149,23 +171,55 @@ export default class VocabularyPage {
   }
 
   async mount() {
-    // Get dictionary ID from URL parameters
-    await this.loadDictionaryId();
+    console.log('🔍 DEBUG: VocabularyPage mount started');
     
-    if (!this.dictionaryId) {
-      console.log('🔄 No dictionary ID provided, redirecting to dictionaries page');
-      window.location.hash = 'dictionaries';
+    // Load available dictionaries
+    await this.loadDictionaries();
+    
+    if (this.dictionaries.length === 0) {
+      console.log('🔍 DEBUG: No dictionaries available');
+      this.showErrorMessage('No dictionaries available');
       return;
     }
+    
+    // Set first dictionary as default if none selected
+    if (!this.selectedDictionaryId) {
+      this.selectedDictionaryId = this.dictionaries[0].id;
+    }
+    
+    console.log('🔍 DEBUG: Selected Dictionary ID:', this.selectedDictionaryId);
 
-    // Set up session storage key
-    this.sessionStorageKey = `vocabin_session_${this.dictionaryId}`;
+    // **CRITICAL FIX**: Set up session storage key with user ID
+    const userId = await this.getUserId();
+    this.sessionStorageKey = `vocabin_session_${userId}_${this.selectedDictionaryId}`;
+    console.log('🔍 DEBUG: Session storage key set to:', this.sessionStorageKey);
 
-    // Load dictionary and progress data
+    // **CRITICAL FIX**: Restore session state FIRST (for timing/UI state)
+    this.restoreSessionState();
+    console.log('🔍 DEBUG: Session restored with values:', this.session);
+
+    // **THEN** Load dictionary and progress data (this will override stats with database values)
     await this.loadLearningData();
     
-    // Restore session state if available
-    this.restoreSessionState();
+    // **CRITICAL FIX**: If getDictionaryProgress failed, try to get progress from getCurrentWord
+    if (!this.progress) {
+      console.log('🔍 DEBUG: No progress from getDictionaryProgress, trying getCurrentWord...');
+      try {
+        const response = await this.vocabularyService.getCurrentWord(this.selectedDictionaryId);
+        if (response.dictionary_progress) {
+          this.progress = response.dictionary_progress;
+          console.log('🔍 DEBUG: Got progress from getCurrentWord:', this.progress);
+        }
+      } catch (error) {
+        console.log('🔍 DEBUG: getCurrentWord also failed:', error);
+        // Still proceed, we'll get progress when user starts practice
+      }
+    }
+    
+    console.log('🔍 DEBUG: Final state after mount:');
+    console.log('🔍 DEBUG: - currentWord:', this.currentWord?.name);
+    console.log('🔍 DEBUG: - session stats:', this.session);
+    console.log('🔍 DEBUG: - progress from database:', this.progress);
     
     // Bind events and setup
     this.bindEvents();
@@ -174,44 +228,169 @@ export default class VocabularyPage {
     // Set initial audio button visibility
     this.updateAudioButtonVisibility();
     
-    console.log('📚 VocabularyPage mounted with dictionary:', this.dictionaryId);
+    console.log('🔍 DEBUG: VocabularyPage mount completed');
   }
 
-  async loadDictionaryId() {
-    // Check if router has set query parameters
-    if (window.router && window.router.getCurrentRoute && window.router.getCurrentRoute()) {
-      const currentRoute = window.router.getCurrentRoute();
-      if (currentRoute.query && currentRoute.query.dictionaryId) {
-        this.dictionaryId = currentRoute.query.dictionaryId;
-        console.log('📚 Got dictionaryId from route query:', this.dictionaryId);
-        return;
-      }
+  async loadDictionaries() {
+    try {
+      console.log('🔍 DEBUG: Starting loadDictionaries...');
+      
+      const dictResponse = await this.vocabularyService.getDictionaries();
+      this.dictionaries = dictResponse.dictionaries;
+      console.log('🔍 DEBUG: Dictionaries loaded:', this.dictionaries);
+      
+      // Load progress data for each dictionary
+      await this.loadDictionariesProgress();
+      
+      // Update the dropdown with loaded dictionaries
+      this.updateDictionaryDropdown();
+      
+    } catch (error) {
+      console.error('❌ Failed to load dictionaries:', error);
+      this.showErrorMessage('Failed to load dictionaries. Please try again.');
     }
-    
-    // Fallback to URLSearchParams
-    const urlParams = new URLSearchParams(window.location.search);
-    this.dictionaryId = urlParams.get('dictionaryId');
-    console.log('📚 Got dictionaryId from URLSearchParams:', this.dictionaryId);
+  }
+
+  async loadDictionariesProgress() {
+    try {
+      console.log('🔍 DEBUG: Loading progress for all dictionaries...');
+      
+      // Load progress for each dictionary
+      for (let dict of this.dictionaries) {
+        try {
+          const progressResponse = await this.vocabularyService.getDictionaryProgress(dict.id);
+          dict.progress = progressResponse.progress.overall; // Store the overall progress
+          console.log('🔍 DEBUG: Progress for', dict.display_name, ':', dict.progress.completed_words);
+        } catch (error) {
+          // **CRITICAL FIX**: For fresh users, no progress is normal - don't show errors
+          console.log('🔍 DEBUG: No progress found for', dict.display_name, '(normal for fresh users)');
+          dict.progress = { 
+            completed_words: 0,
+            status: 'not_started',
+            accuracy_rate: 0,
+            current_position: 0
+          }; // Default progress for fresh users
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to load dictionaries progress:', error);
+    }
+  }
+
+  updateDictionaryDropdown() {
+    const dictionarySelect = document.getElementById('dictionary-select');
+    if (dictionarySelect && this.dictionaries.length > 0) {
+      dictionarySelect.innerHTML = this.dictionaries.map(dict => 
+        `<option value="${dict.id}" ${dict.id === this.selectedDictionaryId ? 'selected' : ''}>
+          ${dict.display_name} (${dict.progress ? dict.progress.completed_words || 0 : 0}/${dict.total_words})
+        </option>`
+      ).join('');
+    }
   }
 
   async loadLearningData() {
     try {
+      console.log('🔍 DEBUG: Starting loadLearningData...');
+      
       // Load dictionary info
-      const dictResponse = await this.vocabularyService.getDictionary(this.dictionaryId);
+      console.log('🔍 DEBUG: Loading dictionary info...');
+      const dictResponse = await this.vocabularyService.getDictionary(this.selectedDictionaryId);
       this.dictionary = dictResponse.dictionary;
+      console.log('🔍 DEBUG: Dictionary loaded:', {
+        id: this.dictionary.id,
+        name: this.dictionary.display_name,
+        total_words: this.dictionary.total_words
+      });
       
       // Update UI with dictionary info
       const dictNameEl = document.getElementById('dictionary-name');
       if (dictNameEl) dictNameEl.textContent = this.dictionary.display_name;
       
       // Load user progress
-      const progressResponse = await this.vocabularyService.getDictionaryProgress(this.dictionaryId);
-      this.progress = progressResponse.progress;
+      console.log('🔍 DEBUG: Loading user progress...');
+      try {
+        const progressResponse = await this.vocabularyService.getDictionaryProgress(this.selectedDictionaryId);
+        console.log('🔍 DEBUG: getDictionaryProgress response:', progressResponse);
+        console.log('🔍 DEBUG: getDictionaryProgress FULL response structure:', JSON.stringify(progressResponse, null, 2));
+        
+        this.progress = progressResponse.progress;
+        
+        console.log('🔍 DEBUG: Extracted progress object:', this.progress);
+        console.log('🔍 DEBUG: Progress FULL object structure:', JSON.stringify(this.progress, null, 2));
+        
+        // **CRITICAL FIX**: Sync session stats with database values
+        if (this.progress) {
+          console.log('🔍 DEBUG: Syncing session stats with database...');
+          
+          // **USE SAME DATA SOURCE AS DICTIONARY SELECTOR**
+          // Extract from UserDictionary (overall) instead of calculating from UserWordProgress aggregates
+          const overall = this.progress.overall || {};
+          
+          const completedWords = overall.completed_words || 0;
+          const accuracyRate = overall.accuracy_rate || 0; // This is a percentage (75)
+          
+          // **CRITICAL**: Use the UserDictionary correct_answers and wrong_answers if available
+          // These should be the actual stored values, not calculated from aggregates
+          let correctAnswers, wrongAnswers, totalInputs;
+          
+          // Check if we have direct access to UserDictionary data (now in overall section)
+          if (overall.correct_answers !== undefined && overall.wrong_answers !== undefined) {
+            // Use direct UserDictionary values (same as selector)
+            correctAnswers = overall.correct_answers;
+            wrongAnswers = overall.wrong_answers;
+            totalInputs = correctAnswers + wrongAnswers;
+          } else {
+            // Fallback: calculate total inputs to match completed words
+            // Since completed_words represents successful completions, use that as base
+            totalInputs = completedWords;
+            correctAnswers = Math.round((totalInputs * accuracyRate) / 100);
+            wrongAnswers = totalInputs - correctAnswers;
+          }
+          
+          console.log('🔍 DEBUG: Using UserDictionary values (same as selector):', {
+            completedWords,
+            accuracyRate: accuracyRate + '%',
+            directValues: {
+              correct_answers: overall.correct_answers,
+              wrong_answers: overall.wrong_answers
+            },
+            calculated: {
+              correctAnswers,
+              wrongAnswers,
+              totalInputs
+            }
+          });
+          
+          // Update session to match database (same as selector shows)
+          this.session.correctCount = correctAnswers;
+          this.session.wrongCount = wrongAnswers;
+          this.session.inputCount = totalInputs;
+          this.session.accuracy = accuracyRate; // Use database accuracy directly
+          
+          console.log('🔍 DEBUG: Updated session stats to match selector:', this.session);
+          
+          // **CRITICAL**: Update the UI to reflect database values
+          this.updateStats();
+        }
+        
+        console.log('🔍 DEBUG: Progress loaded from database:', {
+          current_position: this.progress?.overall?.current_position,
+          completed_words: this.progress?.overall?.completed_words,
+          accuracy_rate: this.progress?.overall?.accuracy_rate,
+          words_attempted: this.progress?.word_level_stats?.words_attempted,
+          wrong_words_count: this.progress?.word_level_stats?.wrong_words_count
+        });
+        
+      } catch (progressError) {
+        // **CRITICAL FIX**: For fresh users, no progress is normal
+        console.log('🔍 DEBUG: No progress found (normal for fresh users):', progressError.message);
+        this.progress = null; // Will be initialized when user starts practice
+      }
       
       // Update progress info
       this.updateProgressDisplay();
       
-      console.log('✅ Loaded dictionary and progress data');
+      console.log('🔍 DEBUG: loadLearningData completed successfully');
     } catch (error) {
       console.error('❌ Failed to load learning data:', error);
       this.showErrorMessage('Failed to load dictionary data. Please try again.');
@@ -223,6 +402,15 @@ export default class VocabularyPage {
     const playAudioBtn = document.getElementById('play-audio-btn');
     const audioSwitch = document.getElementById('audio-switch');
     const hintSwitch = document.getElementById('hint-switch');
+    const dictionarySelect = document.getElementById('dictionary-select');
+
+    // Dictionary selection
+    dictionarySelect?.addEventListener('change', async (e) => {
+      const newDictionaryId = e.target.value;
+      if (newDictionaryId !== this.selectedDictionaryId) {
+        await this.changeDictionary(newDictionaryId);
+      }
+    });
 
     // Start practice on click
     practiceZone?.addEventListener('click', () => {
@@ -309,7 +497,6 @@ export default class VocabularyPage {
       return;
     }
     
-    console.log('🖼️ Updating word display for:', this.currentWord.name);
     
     // Update word display - Show Chinese translation and pronunciation
     const wordTitle = document.getElementById('word-title');
@@ -320,7 +507,6 @@ export default class VocabularyPage {
       const chineseTranslations = this.currentWord.trans || [];
       const newTitle = chineseTranslations.join(' / ') || 'No translation available';
       wordTitle.textContent = newTitle;
-      console.log('📖 Updated word title to:', newTitle);
     }
     
     if (wordMeaning) {
@@ -341,7 +527,6 @@ export default class VocabularyPage {
       }
       
       wordMeaning.innerHTML = pronunciationHtml;
-      console.log('🔊 Updated pronunciation display');
     }
   }
 
@@ -350,8 +535,7 @@ export default class VocabularyPage {
       // Clear any existing visual state first
       this.clearCurrentWordDisplay();
       
-      const response = await this.vocabularyService.getCurrentWord(this.dictionaryId);
-      console.log('📝 Got new word:', response.word?.name);
+      const response = await this.vocabularyService.getCurrentWord(this.selectedDictionaryId);
       
       this.currentWord = response.word;
       this.progress = response.dictionary_progress;
@@ -415,7 +599,6 @@ export default class VocabularyPage {
   createVisualWordDisplay() {
     const visualWordInput = document.getElementById('visual-word-input');
     if (!visualWordInput || !this.currentWord) {
-      console.warn('⚠️ Cannot create visual word display - missing elements');
       return;
     }
 
@@ -559,7 +742,7 @@ export default class VocabularyPage {
       
       // Submit as incorrect answer to advance in the backend
       await this.vocabularyService.submitWordAnswer({
-        dictionaryId: this.dictionaryId,
+        dictionaryId: this.selectedDictionaryId,
         word: this.currentWord.name,
         wordIndex: this.currentWord.index,
         isCorrect: false,
@@ -583,7 +766,6 @@ export default class VocabularyPage {
       }, 1000);
 
     } catch (error) {
-      console.error('❌ Failed to handle max failures:', error);
       this.showErrorMessage('Failed to process answer. Please try again.');
       // Still try to load next word even if there was an error
       setTimeout(async () => {
@@ -600,7 +782,7 @@ export default class VocabularyPage {
         // Clear any existing visual state first
         this.clearCurrentWordDisplay();
         
-        const response = await this.vocabularyService.getCurrentWord(this.dictionaryId);
+        const response = await this.vocabularyService.getCurrentWord(this.selectedDictionaryId);
         
         // Check if we got a different word
         if (response.word && response.word.name !== previousWord) {
@@ -671,7 +853,7 @@ export default class VocabularyPage {
     try {
       // Submit answer to backend
       await this.vocabularyService.submitWordAnswer({
-        dictionaryId: this.dictionaryId,
+        dictionaryId: this.selectedDictionaryId,
         word: this.currentWord.name,
         wordIndex: this.currentWord.index,
         isCorrect,
@@ -713,21 +895,17 @@ export default class VocabularyPage {
       
       // Add error handling for audio loading
       audio.addEventListener('error', () => {
-        console.log('Youdao audio failed, trying text-to-speech...');
         this.fallbackToTTS();
       });
       
       audio.addEventListener('canplaythrough', () => {
-        console.log('Audio loaded successfully');
       });
       
       audio.play().catch((error) => {
-        console.log('Audio play failed:', error);
         this.fallbackToTTS();
       });
       
     } catch (error) {
-      console.log('Audio setup failed:', error);
       this.fallbackToTTS();
     }
   }
@@ -742,7 +920,6 @@ export default class VocabularyPage {
       utterance.volume = 0.8;
       speechSynthesis.speak(utterance);
     } else {
-      console.log('No audio support available');
       this.showErrorMessage('Audio not supported in this browser');
     }
   }
@@ -907,7 +1084,6 @@ export default class VocabularyPage {
         this.showRestoredSession();
       }
       
-      console.log('✅ Session state restored');
     } catch (error) {
       console.warn('Failed to restore session state:', error);
       localStorage.removeItem(this.sessionStorageKey);
@@ -917,8 +1093,12 @@ export default class VocabularyPage {
   updateProgressDisplay() {
     const progressInfoEl = document.getElementById('progress-info');
     if (progressInfoEl) {
-      if (this.dictionary) {
-        // Use session correct count for progress instead of backend completed_words
+      if (this.dictionary && this.progress && this.progress.overall) {
+        // **FIX**: Use database completed_words (same as selector) instead of session correctCount
+        const completedWords = this.progress.overall.completed_words || 0;
+        progressInfoEl.textContent = `${completedWords}/${this.dictionary.total_words}`;
+      } else if (this.dictionary) {
+        // Fallback to session correct count if no database progress
         progressInfoEl.textContent = `${this.session.correctCount}/${this.dictionary.total_words}`;
       } else {
         progressInfoEl.textContent = '0/0';
@@ -929,9 +1109,16 @@ export default class VocabularyPage {
   showRestoredSession() {
     const startMessage = document.querySelector('.start-message');
     if (startMessage) {
-      const progressText = this.dictionary ? 
-        `${this.session.correctCount}/${this.dictionary.total_words} words completed` : 
-        'Progress loading...';
+      let progressText = 'Progress loading...';
+      
+      if (this.dictionary && this.progress && this.progress.overall) {
+        // **FIX**: Use database completed_words (same as selector and progress display)
+        const completedWords = this.progress.overall.completed_words || 0;
+        progressText = `${completedWords}/${this.dictionary.total_words} words completed`;
+      } else if (this.dictionary) {
+        // Fallback to session correct count if no database progress
+        progressText = `${this.session.correctCount}/${this.dictionary.total_words} words completed`;
+      }
         
       startMessage.innerHTML = `
         <h2>Session Restored</h2>
@@ -961,7 +1148,7 @@ export default class VocabularyPage {
     // Save final session state before cleanup
     this.saveSessionState();
     
-    console.log('VocabularyPage cleanup completed');
+    
   }
 
   updateAudioButtonVisibility() {
@@ -979,5 +1166,61 @@ export default class VocabularyPage {
         statusEl.textContent = this.audioEnabled ? 'ON' : 'OFF';
       }
     }
+  }
+
+  async changeDictionary(newDictionaryId) {
+    console.log('🔍 DEBUG: Changing dictionary to:', newDictionaryId);
+    
+    // Save current session state before switching
+    this.saveSessionState();
+    
+    // Reset session state for new dictionary
+    this.session = {
+      timeElapsed: 0,
+      inputCount: 0,
+      correctCount: 0,
+      wrongCount: 0,
+      accuracy: 0,
+      isActive: false
+    };
+    
+    // Clear current state
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.currentWord = null;
+    this.progress = null;
+    this.isTypingWord = false;
+    
+    // Update selected dictionary
+    this.selectedDictionaryId = newDictionaryId;
+    
+    // **CRITICAL FIX**: Update session storage key with user ID
+    const userId = await this.getUserId();
+    this.sessionStorageKey = `vocabin_session_${userId}_${this.selectedDictionaryId}`;
+    
+    // Restore session state for new dictionary
+    this.restoreSessionState();
+    
+    // Load new dictionary data
+    await this.loadLearningData();
+    
+    // Update the dropdown with latest progress
+    await this.loadDictionariesProgress();
+    this.updateDictionaryDropdown();
+    
+    // Update UI
+    this.updateStats();
+    this.updateProgressDisplay();
+    
+    // Reset practice area
+    const startMessage = document.querySelector('.start-message');
+    const wordPractice = document.getElementById('word-practice');
+    
+    if (startMessage) startMessage.style.display = 'block';
+    if (wordPractice) wordPractice.style.display = 'none';
+    
+    console.log('🔍 DEBUG: Dictionary changed successfully');
   }
 } 

@@ -10,6 +10,28 @@ export default class DictionarySelector {
     this.selectedDifficulty = 'all';
     this.searchTerm = '';
     this.isLoading = false;
+    this.practiceMode = this.detectPracticeMode();
+  }
+
+  detectPracticeMode() {
+    // Detect the intended practice mode from the referrer or URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    
+    if (mode) {
+      return mode; // listening, vocabulary, reading
+    }
+    
+    // Check current hash or previous page
+    const currentHash = window.location.hash.slice(1);
+    if (currentHash.includes('listening')) {
+      return 'listening';
+    } else if (currentHash.includes('reading')) {
+      return 'reading';
+    }
+    
+    // Default to vocabulary
+    return 'vocabulary';
   }
 
   render() {
@@ -23,11 +45,28 @@ export default class DictionarySelector {
   }
 
   renderHeader() {
+    const modeConfig = {
+      vocabulary: {
+        title: '📚 Choose Your Vocabulary Dictionary',
+        subtitle: 'Select a dictionary to start your vocabulary learning journey'
+      },
+      listening: {
+        title: '🎧 Choose Your Listening Dictionary',
+        subtitle: 'Select a dictionary to start your listening practice'
+      },
+      reading: {
+        title: '📖 Choose Your Reading Dictionary',
+        subtitle: 'Select a dictionary to start your reading exercises'
+      }
+    };
+
+    const config = modeConfig[this.practiceMode] || modeConfig.vocabulary;
+
     return `
       <div class="dictionary-header">
         <div class="header-content">
-          <h1>📚 Choose Your Dictionary</h1>
-          <p class="header-subtitle">Select a dictionary to start your vocabulary learning journey</p>
+          <h1>${config.title}</h1>
+          <p class="header-subtitle">${config.subtitle}</p>
         </div>
         <div class="stats-overview" id="stats-overview">
           ${this.renderStatsOverview()}
@@ -458,8 +497,12 @@ export default class DictionarySelector {
       
       console.log('✅ Dictionary started:', response);
       
-      // Navigate to vocabulary page with dictionary ID
-      window.location.hash = `vocabulary?dictionaryId=${dictionaryId}`;
+      // Navigate to the appropriate practice page based on practice mode
+      const targetPage = this.practiceMode === 'listening' ? 'listening' : 
+                        this.practiceMode === 'reading' ? 'reading' : 
+                        'vocabulary';
+      
+      window.location.hash = `${targetPage}?dictionaryId=${dictionaryId}`;
       
     } catch (error) {
       // Restore button state on error

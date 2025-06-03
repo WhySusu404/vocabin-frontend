@@ -157,7 +157,7 @@ export default class UserProfilePage {
               </div>
               
               <div class="form-actions">
-                <div class="save-btn">Save</div>
+                <button type="submit" class="save-btn">Save</button>
               </div>
             </form>
           </div>
@@ -297,22 +297,22 @@ export default class UserProfilePage {
         
         .save-btn {
           display: block;
-        margin-left: auto;
-        margin-right: auto;
-        width: 30%;
-        font-size: var(--font-size-md);
-        background: #689BAE;
-        border-radius: 20px;
-        color: white;
-        text-align: center;
-        border: none;
-        padding: 10px 20px;
-        cursor: pointer;
-        transition: background 0.3s ease;
-        
-        &:hover {
-            background: #6c9aab;
+          margin-left: auto;
+          margin-right: auto;
+          width: 30%;
+          font-size: 1rem;
+          background: #689BAE;
+          border-radius: 20px;
+          color: white;
+          text-align: center;
+          border: none;
+          padding: 10px 20px;
+          cursor: pointer;
+          transition: background 0.3s ease;
         }
+        
+        .save-btn:hover {
+          background: #6c9aab;
         }
         
         @media (max-width: 768px) {

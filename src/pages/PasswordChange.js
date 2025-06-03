@@ -119,7 +119,7 @@ export default class PasswordChangePage {
               </div>
               
               <div class="form-actions">
-                <div class="submit-btn">Submit</div>
+                <button type="submit" class="submit-btn">Submit</button>
               </div>
             </form>
           </div>
@@ -298,22 +298,22 @@ export default class PasswordChangePage {
         
         .submit-btn {
           display: block;
-        margin-left: auto;
-        margin-right: auto;
-        width: 30%;
-        font-size: var(--font-size-md);
-        background: #689BAE;
-        border-radius: 20px;
-        color: white;
-        text-align: center;
-        border: none;
-        padding: 10px 20px;
-        cursor: pointer;
-        transition: background 0.3s ease;
-        
-        &:hover {
-            background: #6c9aab;
+          margin-left: auto;
+          margin-right: auto;
+          width: 30%;
+          font-size: 1rem;
+          background: #689BAE;
+          border-radius: 20px;
+          color: white;
+          text-align: center;
+          border: none;
+          padding: 10px 20px;
+          cursor: pointer;
+          transition: background 0.3s ease;
         }
+        
+        .submit-btn:hover {
+          background: #6c9aab;
         }
         
         .error-message {
