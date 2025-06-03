@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocaBin Auth Debug</title>
+</head>
+<body>
+    <h1>VocaBin Authentication Debug</h1>
+    
+    <div>
+        <h2>Current Token Status</h2>
+        <button onclick="checkAuth()">Check Authentication</button>
+        <pre id="authStatus"></pre>
+    </div>
+    
+    <div>
+        <h2>Quick Admin Login</h2>
+        <form onsubmit="quickLogin(event)">
+            <input type="email" placeholder="Email" value="admin@vocabin.com" id="email">
+            <input type="password" placeholder="Password" value="admin123" id="password">
+            <button type="submit">Login</button>
+        </form>
+        <pre id="loginResult"></pre>
+    </div>
+    
+    <div>
+        <h2>Test API Call</h2>
+        <button onclick="testAPI()">Test Admin Users API</button>
+        <pre id="apiResult"></pre>
+    </div>
+
+    <script>
+        function checkAuth() {
+            const authToken = localStorage.getItem('authToken');
+            const vocabinToken = localStorage.getItem('vocabin_token');
+            const adminSession = localStorage.getItem('vocabin_admin_session');
+            
+            const status = {
+                authToken: authToken ? 'Present (length: ' + authToken.length + ')' : 'Missing',
+                vocabinToken: vocabinToken ? 'Present (length: ' + vocabinToken.length + ')' : 'Missing',
+                adminSession: adminSession ? 'Present' : 'Missing',
+                allKeys: Object.keys(localStorage)
+            };
+            
+            document.getElementById('authStatus').textContent = JSON.stringify(status, null, 2);
+        }
+        
+        async function quickLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.token) {
+                    localStorage.setItem('authToken', result.token);
+                    document.getElementById('loginResult').textContent = 'Login successful!\n' + JSON.stringify(result, null, 2);
+                } else {
+                    document.getElementById('loginResult').textContent = 'Login failed:\n' + JSON.stringify(result, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('loginResult').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testAPI() {
+            const token = localStorage.getItem('authToken');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/admin/users?page=1&limit=5', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const result = await response.json();
+                document.getElementById('apiResult').textContent = 'Status: ' + response.status + '\n' + JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('apiResult').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        // Auto-check auth on load
+        checkAuth();
+    </script>
+</body>
+</html> 

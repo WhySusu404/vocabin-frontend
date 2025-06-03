@@ -243,85 +243,83 @@ export default class ContentManagementPage {
   }
 
   async loadContentData() {
-    // Mock content data - replace with real API calls
-    this.contentData = {
-      vocabulary: [
-        {
-          id: '1',
-          title: 'IELTS Academic Vocabulary',
-          description: 'Essential vocabulary for IELTS academic module.',
-          isPublic: true,
-          difficulty: 'intermediate',
-          createdDate: '2024-01-15',
-          wordCount: 150,
-          category: 'Academic'
-        },
-        {
-          id: '2',
-          title: 'Business English Terms',
-          description: 'Common business terminology and phrases.',
-          isPublic: true,
-          difficulty: 'advanced',
-          createdDate: '2024-01-10',
-          wordCount: 200,
-          category: 'Business'
+    try {
+      console.log('🔄 Loading real content data from API...');
+      
+      // Load real dictionary files from backend
+      const response = await fetch('http://localhost:3000/api/admin/dictionaries', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
-      ],
-      listening: [
-        {
-          id: '1',
-          title: 'BBC News Daily',
-          description: 'Daily news broadcasts for listening practice.',
-          isPublic: true,
-          difficulty: 'intermediate',
-          createdDate: '2024-01-20',
-          duration: 180,
-          audioFile: 'bbc_news_daily.mp3'
-        },
-        {
-          id: '2',
-          title: 'English Conversations',
-          description: 'Natural conversations between native speakers.',
-          isPublic: true,
-          difficulty: 'beginner',
-          createdDate: '2024-01-18',
-          duration: 240,
-          audioFile: 'conversations.mp3'
-        }
-      ],
-      reading: [
-        {
-          id: '1',
-          title: 'Science Articles Collection',
-          description: 'Scientific articles with comprehension exercises.',
-          isPublic: true,
-          difficulty: 'advanced',
-          createdDate: '2024-01-12',
-          wordCount: 1500,
-          exerciseCount: 8
-        },
-        {
-          id: '2',
-          title: 'Short Stories for Beginners',
-          description: 'Simple stories with vocabulary exercises.',
-          isPublic: true,
-          difficulty: 'beginner',
-          createdDate: '2024-01-08',
-          wordCount: 800,
-          exerciseCount: 5
-        }
-      ]
-    };
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Dictionary files API response:', result);
+      
+      if (result.success) {
+        // Transform backend data to frontend format
+        const vocabularyData = result.data.dictionaryFiles.map(dict => ({
+          id: dict._id,
+          title: dict.name,
+          description: dict.description || 'No description available.',
+          isPublic: dict.isActive || false,
+          difficulty: dict.difficulty || 'intermediate',
+          createdDate: new Date(dict.uploadedAt).toISOString().split('T')[0],
+          wordCount: dict.wordCount || 0,
+          category: dict.category || 'General',
+          filename: dict.filename,
+          originalName: dict.originalName
+        }));
+
+        this.contentData = {
+          vocabulary: vocabularyData,
+          listening: [], // No listening materials yet
+          reading: []   // No reading materials yet
+        };
+        
+        console.log('✅ Loaded real dictionary data:', this.contentData);
+      } else {
+        throw new Error(result.message || 'Failed to fetch dictionaries');
+      }
+    } catch (error) {
+      console.error('❌ Error loading real content data:', error);
+      console.log('📋 Falling back to minimal mock data for demonstration');
+      
+      // Fallback to minimal mock data if API fails
+      this.contentData = {
+        vocabulary: [
+          {
+            id: 'mock-1',
+            title: '⚠️ API Connection Error',
+            description: 'Could not connect to backend. Please check if the server is running on http://localhost:3000',
+            isPublic: false,
+            difficulty: 'intermediate',
+            createdDate: new Date().toISOString().split('T')[0],
+            wordCount: 0,
+            category: 'Error'
+          }
+        ],
+        listening: [],
+        reading: []
+      };
+    }
   }
 
   mount() {
     console.log('ContentManagement page mounted');
-    this.updateActiveNavigation();
     
-    // Make methods globally accessible for inline onclick handlers
+    // Make the instance globally available for onclick handlers
     window.contentManagement = this;
     
     this.bindEvents();
+    
+    // Navigation highlighting is now handled centrally by app.js
   }
 
   bindEvents() {
@@ -456,12 +454,35 @@ export default class ContentManagementPage {
           </div>
           
           <div class="form-group">
-            <label>Words (one per line)</label>
+            <label>Upload Dictionary File (JSON)</label>
+            <sl-input 
+              id="vocabulary-file-input" 
+              type="file" 
+              accept=".json"
+            ></sl-input>
+            <sl-details summary="File Format Information" class="mt-2">
+              <div class="file-format-info">
+                <p>Expected JSON format:</p>
+                <pre>[
+  {
+    "name": "word",
+    "trans": ["definition1", "definition2"],
+    "usphone": "pronunciation",
+    "ukphone": "pronunciation"
+  }
+]</pre>
+              </div>
+            </sl-details>
+          </div>
+          
+          <div class="form-group">
+            <label>Or Enter Words Manually (one per line)</label>
             <sl-textarea 
               id="vocabulary-words"
               placeholder="word1:definition1&#10;word2:definition2"
-              rows="8"
+              rows="6"
             ></sl-textarea>
+            <small class="help-text">Use this if you don't have a JSON file. Format: word:definition</small>
           </div>
         `;
         break;
@@ -524,42 +545,74 @@ export default class ContentManagementPage {
         return;
       }
 
-      // Generate new ID
-      const newId = (this.contentData[this.activeTab].length + 1).toString();
-      
-      const newContent = {
-        id: newId,
-        ...formData,
-        createdDate: new Date().toISOString().split('T')[0]
-      };
+      // For vocabulary tab, handle dictionary file upload
+      if (this.activeTab === 'vocabulary') {
+        console.log('🔄 Uploading new dictionary file...');
+        
+        // Create FormData for file upload
+        const uploadData = new FormData();
+        
+        // Check if there's a file uploaded
+        const fileInput = document.querySelector('#vocabulary-file-input');
+        if (fileInput && fileInput.files[0]) {
+          uploadData.append('dictionaryFile', fileInput.files[0]);
+        } else {
+          // If no file, create a simple JSON structure from the words input
+          const wordsText = formData.words || '';
+          const words = wordsText.split('\n').filter(w => w.trim()).map(line => {
+            const [name, trans] = line.split(':').map(part => part.trim());
+            return {
+              name: name || '',
+              trans: trans ? [trans] : ['No definition provided']
+            };
+          });
+          
+          const dictionaryData = JSON.stringify(words, null, 2);
+          const blob = new Blob([dictionaryData], { type: 'application/json' });
+          const fileName = `${formData.title.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+          uploadData.append('dictionaryFile', blob, fileName);
+        }
+        
+        // Add metadata
+        uploadData.append('name', formData.title);
+        uploadData.append('description', formData.description || '');
+        uploadData.append('category', formData.category || 'General');
+        uploadData.append('difficulty', formData.difficulty || 'intermediate');
+        
+        const response = await fetch('http://localhost:3000/api/admin/dictionaries/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
+          body: uploadData
+        });
 
-      // Add type-specific properties
-      switch (this.activeTab) {
-        case 'vocabulary':
-          newContent.wordCount = formData.words?.split('\n').filter(w => w.trim()).length || 0;
-          break;
-        case 'listening':
-          newContent.duration = 0; // Would be calculated from audio file
-          break;
-        case 'reading':
-          newContent.wordCount = formData.content?.split(' ').length || 0;
-          newContent.exerciseCount = formData.questions?.split('\n').filter(q => q.trim()).length || 0;
-          break;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Dictionary upload response:', result);
+        
+        if (result.success) {
+          showToast('Dictionary uploaded successfully', 'success');
+          
+          // Reload content data to show the new dictionary
+          await this.loadContentData();
+          this.refreshContentDisplay();
+          
+          // Close modal
+          document.getElementById('add-content-modal').hide();
+        } else {
+          throw new Error(result.message || 'Failed to upload dictionary');
+        }
+      } else {
+        // For listening/reading materials (not implemented yet)
+        showToast('Listening and Reading materials are not implemented yet', 'warning');
       }
-
-      // Add to data
-      this.contentData[this.activeTab].push(newContent);
-      
-      // Re-render content
-      this.refreshContentDisplay();
-      
-      // Close modal
-      document.getElementById('add-content-modal').hide();
-      
-      showToast(`${this.getContentTypeName()} created successfully`, 'success');
     } catch (error) {
       console.error('Error saving content:', error);
-      showToast('Error saving content', 'danger');
+      showToast(`Error saving content: ${error.message}`, 'danger');
     }
   }
 
@@ -627,16 +680,35 @@ export default class ContentManagementPage {
 
     if (confirm(`Are you sure you want to delete "${content.title}"?`)) {
       try {
-        // Remove from data
-        this.contentData[this.activeTab] = this.contentData[this.activeTab].filter(item => item.id !== contentId);
+        console.log('🔄 Deleting dictionary file:', contentId);
         
-        // Refresh display
-        this.refreshContentDisplay();
+        const response = await fetch(`http://localhost:3000/api/admin/dictionaries/${contentId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Delete dictionary response:', result);
         
-        showToast(`${this.getContentTypeName()} deleted successfully`, 'success');
+        if (result.success) {
+          showToast('Dictionary deleted successfully', 'success');
+          
+          // Reload content data to reflect the deletion
+          await this.loadContentData();
+          this.refreshContentDisplay();
+        } else {
+          throw new Error(result.message || 'Failed to delete dictionary');
+        }
       } catch (error) {
         console.error('Error deleting content:', error);
-        showToast('Error deleting content', 'danger');
+        showToast(`Error deleting content: ${error.message}`, 'danger');
       }
     }
   }
@@ -646,16 +718,6 @@ export default class ContentManagementPage {
     if (tabContent) {
       tabContent.innerHTML = this.renderTabContent();
     }
-  }
-
-  updateActiveNavigation() {
-    const navLinks = document.querySelectorAll('.admin-nav a');
-    navLinks.forEach(link => {
-      link.classList.remove('active');
-      if (link.getAttribute('href') === '#admin/content') {
-        link.classList.add('active');
-      }
-    });
   }
 
   cleanup() {

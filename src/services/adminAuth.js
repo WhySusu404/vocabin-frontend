@@ -18,7 +18,11 @@ class AdminAuthService {
      * Get auth headers for API calls
      */
     getAuthHeaders() {
-        const token = localStorage.getItem('vocabin_token');
+        const token = localStorage.getItem('authToken');
+        console.log('🔑 AdminAuth.getAuthHeaders() - token exists:', !!token, 'length:', token?.length);
+        if (token) {
+            console.log('🔑 Token preview:', token.substring(0, 50) + '...');
+        }
         return {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`

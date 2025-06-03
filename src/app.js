@@ -268,14 +268,22 @@ class VocaBinApp {
     if (component) {
       const adminMainContent = adminContainer.querySelector('.admin-main-content');
       if (adminMainContent) {
-        const html = component.render ? component.render() : '';
+        const html = await (component.render ? component.render() : '');
         adminMainContent.innerHTML = html;
-        if (component.mount) {
+        
+        // Initialize the component if it has an init method
+        if (component.init) {
+          await component.init();
+        } else if (component.mount) {
           component.mount();
         }
+        
         this.currentPage = component;
       }
     }
+    
+    // Always update admin navigation highlighting after rendering the page
+    this.updateAdminNavigation();
     
     this.currentLayout = 'admin';
   }
@@ -283,20 +291,19 @@ class VocaBinApp {
   async loadComponent(ComponentClass, route = null) {
     try {
       
-      
       // Handle dynamic imports - improved detection
       if (typeof ComponentClass === 'function') {
         const funcString = ComponentClass.toString();
+        
         // Only treat as dynamic import if it's actually an arrow function that returns import()
         // and doesn't have a class name
         if (!ComponentClass.name && (funcString.includes('import(') || funcString.includes('require('))) {
           try {
-            
             const module = await ComponentClass();
             ComponentClass = module.default || module;
             
           } catch (importError) {
-            console.error('Dynamic import failed:', importError);
+            console.error('❌ Dynamic import failed:', importError);
             throw importError;
           }
         }
@@ -324,7 +331,7 @@ class VocaBinApp {
       return new ComponentClass();
       
     } catch (error) {
-      console.error('Failed to load component:', error);
+      console.error('❌ Failed to load component:', error);
       return null;
     }
   }
@@ -428,10 +435,6 @@ class VocaBinApp {
             <a href="#admin/content" class="nav-link" data-page="content">
               <sl-icon name="folder"></sl-icon>
               <span>Content Management</span>
-            </a>
-            <a href="#admin/reports" class="nav-link" data-page="reports">
-              <sl-icon name="exclamation-triangle"></sl-icon>
-              <span>Error Reports</span>
             </a>
             <div class="nav-divider"></div>
             <button id="admin-logout-btn" class="logout-btn">

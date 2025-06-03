@@ -249,7 +249,7 @@ export default class UserManagementPage {
   mount() {
     console.log('UserManagement page mounted');
     this.bindEvents();
-    this.updateActiveNavigation();
+    // Navigation highlighting is now handled centrally by app.js
     
     // Make methods globally accessible for inline onclick handlers
     window.userManagement = this;
@@ -478,16 +478,6 @@ export default class UserManagementPage {
       console.error('Error toggling user status:', error);
       showToast('Error updating user status', 'danger');
     }
-  }
-
-  updateActiveNavigation() {
-    const navLinks = document.querySelectorAll('.admin-nav a');
-    navLinks.forEach(link => {
-      link.classList.remove('active');
-      if (link.getAttribute('href') === '#admin/users') {
-        link.classList.add('active');
-      }
-    });
   }
 
   cleanup() {

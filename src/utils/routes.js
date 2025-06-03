@@ -14,17 +14,15 @@ import ListeningPage from '../pages/ListeningPage.js';
 import UserProfilePage from '../pages/UserProfile.js';
 import PasswordChangePage from '../pages/PasswordChange.js';
 
+// Import admin components statically for testRoutes
+import AdminDashboard from '../pages/admin/AdminDashboard.js';
+import UserManagement from '../pages/admin/UserManagement.js';
+import ContentManagement from '../pages/admin/ContentManagement.js';
+
 // Dynamic imports for pages not yet created
 const DashboardHistoryPage = () => import('../pages/DashboardHistory.js');
 const InfoSavedPage = () => import('../pages/InfoSaved.js');
-const ErrorReportPage = () => import('../pages/ErrorReportPage.js');
-
-// Admin pages
 const AdminLoginPage = () => import('../pages/admin/AdminLogin.js');
-const AdminDashboardPage = () => import('../pages/admin/AdminDashboard.js');
-const UserManagementPage = () => import('../pages/admin/UserManagement.js');
-const ContentManagementPage = () => import('../pages/admin/ContentManagement.js');
-const ReportManagementPage = () => import('../pages/admin/ReportManagement.js');
 
 /**
  * User Routes Configuration
@@ -113,13 +111,6 @@ export const userRoutes = [
     title: 'Profile Updated - VocaBin',
     layout: 'user',
     requiresAuth: true
-  },
-  {
-    path: 'error-report',
-    component: ErrorReportPage,
-    title: 'Report Error - VocaBin',
-    layout: 'user',
-    requiresAuth: true
   }
 ];
 
@@ -136,7 +127,7 @@ export const adminRoutes = [
   },
   {
     path: 'admin/dashboard',
-    component: AdminDashboardPage,
+    component: AdminDashboard,
     title: 'Admin Dashboard - VocaBin',
     layout: 'admin',
     requiresAuth: true,
@@ -144,7 +135,7 @@ export const adminRoutes = [
   },
   {
     path: 'admin/users',
-    component: UserManagementPage,
+    component: UserManagement,
     title: 'User Management - VocaBin',
     layout: 'admin',
     requiresAuth: true,
@@ -152,20 +143,12 @@ export const adminRoutes = [
   },
   {
     path: 'admin/content',
-    component: ContentManagementPage,
+    component: ContentManagement,
     title: 'Content Management - VocaBin',
     layout: 'admin',
     requiresAuth: true,
     requiresAdmin: true
   },
-  {
-    path: 'admin/reports',
-    component: ReportManagementPage,
-    title: 'Error Reports - VocaBin',
-    layout: 'admin',
-    requiresAuth: true,
-    requiresAdmin: true
-  }
 ];
 
 /**
@@ -240,7 +223,7 @@ export const testRoutes = [
   },
   {
     path: 'admin/dashboard',
-    component: AdminDashboardPage,
+    component: AdminDashboard,
     title: 'Admin Dashboard - VocaBin',
     layout: 'admin',
     requiresAuth: true,
@@ -248,7 +231,7 @@ export const testRoutes = [
   },
   {
     path: 'admin/users',
-    component: UserManagementPage,
+    component: UserManagement,
     title: 'User Management - VocaBin',
     layout: 'admin',
     requiresAuth: true,
@@ -256,16 +239,8 @@ export const testRoutes = [
   },
   {
     path: 'admin/content',
-    component: ContentManagementPage,
+    component: ContentManagement,
     title: 'Content Management - VocaBin',
-    layout: 'admin',
-    requiresAuth: true,
-    requiresAdmin: true
-  },
-  {
-    path: 'admin/reports',
-    component: ReportManagementPage,
-    title: 'Error Reports - VocaBin',
     layout: 'admin',
     requiresAuth: true,
     requiresAdmin: true

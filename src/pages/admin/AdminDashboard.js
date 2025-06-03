@@ -36,7 +36,6 @@ export default class AdminDashboardPage {
           ${this.renderMetricCard('Word Lists', this.stats.totalWordLists, 'collection', 'info')}
           ${this.renderMetricCard('Listening Materials', this.stats.totalListeningMaterials, 'soundwave', 'warning')}
           ${this.renderMetricCard('Reading Materials', this.stats.totalReadingMaterials, 'book', 'secondary')}
-          ${this.renderMetricCard('Pending Reports', this.stats.pendingReports, 'exclamation-triangle', 'danger')}
         </div>
 
         <div class="admin-content-grid">
@@ -106,14 +105,7 @@ export default class AdminDashboardPage {
                 Manage Content
               </sl-button>
               
-              <sl-button 
-                variant="warning" 
-                size="medium"
-                onclick="window.location.hash = '#admin/reports'"
-              >
-                <sl-icon slot="prefix" name="exclamation-triangle"></sl-icon>
-                View Reports (${this.stats.pendingReports})
-              </sl-button>
+             
             </div>
           </div>
 
@@ -208,18 +200,7 @@ export default class AdminDashboardPage {
   mount() {
     console.log('AdminDashboard page mounted');
     // Add any additional functionality here
-    this.updateActiveNavigation();
-  }
-
-  updateActiveNavigation() {
-    // Update admin navigation to show current page as active
-    const navLinks = document.querySelectorAll('.admin-nav a');
-    navLinks.forEach(link => {
-      link.classList.remove('active');
-      if (link.getAttribute('href') === '#admin/dashboard') {
-        link.classList.add('active');
-      }
-    });
+    // Navigation highlighting is now handled centrally by app.js
   }
 
   cleanup() {
