@@ -6,7 +6,6 @@
 // Import page components
 import { AuthPage } from '../pages/AuthPage.js';
 import { DashboardPage } from '../pages/dashboard.js';
-import DictionarySelectionPage from '../pages/DictionarySelectionPage.js';
 import VocabularyPage from '../pages/VocabularyPage.js';
 import ReadingPage from '../pages/ReadingPage.js';
 import ReadingDetailPage from '../pages/ReadingDetailPage.js';
@@ -48,13 +47,6 @@ export const userRoutes = [
     title: 'Learning History - VocaBin',
     layout: 'user',
     requiresAuth: true
-  },
-  {
-    path: 'dictionaries',
-    component: DictionarySelectionPage,
-    title: 'Select Dictionary - VocaBin',
-    layout: 'user',
-    requiresAuth: false
   },
   {
     path: 'vocabulary',
@@ -171,13 +163,6 @@ export const testRoutes = [
     title: 'Dashboard - VocaBin',
     layout: 'user',
     requiresAuth: true
-  },
-  {
-    path: 'dictionaries',
-    component: DictionarySelectionPage,
-    title: 'Select Dictionary - VocaBin',
-    layout: 'user',
-    requiresAuth: false
   },
   {
     path: 'vocabulary',
