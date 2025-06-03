@@ -1,6 +1,5 @@
 import router from './utils/router.js';
 import { showToast } from './utils/toast.js';
-import dashLogo from './assets/dashboard-logo.svg';
 
 class VocaBinApp {
   constructor() {
@@ -357,7 +356,7 @@ class VocaBinApp {
           <div class="nav-container">
             <div class="nav-brand">
               <a href="#dashboard" class="logo-link">
-                <img src="${dashLogo}" alt="VocaBin Logo" class="logo">
+                <img src="./assets/dashboard-logo.svg" alt="VocaBin Logo" class="logo">
               </a>
             </div>
             <div class="nav-links">
@@ -420,7 +419,7 @@ class VocaBinApp {
       <div class="admin-layout">
         <aside class="admin-sidebar">
           <div class="admin-brand">
-            <img src="${dashLogo}" alt="VocaBin Admin" class="logo">
+            <img src="./assets/dashboard-logo.svg" alt="VocaBin Admin" class="logo">
             <h2>VocaBin Admin</h2>
           </div>
           <nav class="admin-nav">
