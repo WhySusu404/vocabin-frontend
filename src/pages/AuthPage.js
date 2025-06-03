@@ -28,10 +28,10 @@ export class AuthPage {
                             <h1 class="auth-title">Login</h1>
                             <p class="auth-subtitle">Smart, personalized English practice that fits your life.</p>
 
-                            <!-- Google Sign In Button -->
-                            <sl-button variant="default" size="large" class="google-signin-btn" disabled>
-                                <sl-icon name="google" slot="prefix"></sl-icon>
-                                Sign in with Google
+                            <!-- Admin Sign In Button -->
+                            <sl-button variant="default" size="large" class="google-signin-btn" id="adminSigninBtn">
+                                <sl-icon name="admin" slot="prefix"></sl-icon>
+                                Sign in as Admin
                             </sl-button>
 
                             <!-- Divider -->
@@ -139,6 +139,12 @@ export class AuthPage {
         const form = this.container.querySelector('#authForm');
         const toggleLink = this.container.querySelector('#authModeToggle');
         const submitBtn = this.container.querySelector('#submitBtn');
+        const adminSigninBtn = this.container.querySelector('#adminSigninBtn');
+
+        adminSigninBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            router.navigate('admin');
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
