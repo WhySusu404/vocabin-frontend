@@ -81,6 +81,11 @@ class Router {
     // Reset the defaulted flag since this is explicit navigation
     this.isDefaultedToAuth = false;
     
+    // Prevent navigation if it's to the current route to avoid infinite loops
+    if (window.location.hash === '#' + path || window.location.hash === path) {
+        return;
+    }
+    
     if (options.replace) {
       window.location.replace(`#${path}`);
     } else {
