@@ -3,9 +3,9 @@
  * Centralized configuration for backend API calls
  */
 
-// Backend server configuration
+// Backend server configuration - use environment variable or fallback to localhost
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:3000',
+  BASE_URL: process.env.PARCEL_BACKEND_URL || 'http://localhost:3000',
   ENDPOINTS: {
     // Auth endpoints
     AUTH: '/api/auth',
