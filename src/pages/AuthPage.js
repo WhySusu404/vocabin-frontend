@@ -1,7 +1,7 @@
 import { showToast } from '../utils/toast.js';
 import apiService from '../services/api.js';
 import router from '../utils/router.js';
-import logoSvgUrl from 'url:../assets/login-logo.svg';
+// import logoSvgUrl from 'url:../assets/login-logo.svg';
 import loginPngUrl from 'url:../assets/login.png';
 
 export class AuthPage {
@@ -16,7 +16,7 @@ export class AuthPage {
                 <!-- Header with Logo -->
                 <div class="auth-header">
                     <div class="logo-container">
-                        <img src="${logoSvgUrl}" alt="VocaBin" class="logo" />
+                        <img src="../assets/login-logo.svg" alt="VocaBin" class="auth-logo">
                     </div>
                 </div>
 
