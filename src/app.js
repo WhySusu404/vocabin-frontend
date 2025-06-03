@@ -1,6 +1,6 @@
 import router from './utils/router.js';
 import { showToast } from './utils/toast.js';
-import './styles/main.scss';
+import './styles/main.css';
 
 class VocaBinApp {
   constructor() {
