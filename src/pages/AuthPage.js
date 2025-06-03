@@ -17,7 +17,7 @@ export class AuthPage {
                 <!-- Header with Logo -->
                 <div class="auth-header">
                     <div class="logo-container">
-                        <img src="../assets/login-logo.svg" alt="VocaBin" class="auth-logo">
+                        <img src="/login-logo.svg" alt="VocaBin" class="auth-logo">
                     </div>
                 </div>
 
@@ -124,7 +124,7 @@ export class AuthPage {
                     <!-- Right Side - Illustration -->
                     <div class="auth-illustration-section">
                         <div class="illustration-container">
-                            <img src="../assets/login.png" alt="Learning Illustration" class="auth-illustration" />
+                            <img src="/login.png" alt="Learning Illustration" class="auth-illustration" />
                         </div>
                     </div>
                 </div>

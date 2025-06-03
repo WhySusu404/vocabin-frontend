@@ -1,5 +1,6 @@
 import router from './utils/router.js';
 import { showToast } from './utils/toast.js';
+import './styles/main.scss';
 
 class VocaBinApp {
   constructor() {
@@ -356,7 +357,7 @@ class VocaBinApp {
           <div class="nav-container">
             <div class="nav-brand">
               <a href="#dashboard" class="logo-link">
-                <img src="./assets/dashboard-logo.svg" alt="VocaBin Logo" class="logo">
+                <img src="/dashboard-logo.svg" alt="VocaBin Logo" class="logo">
               </a>
             </div>
             <div class="nav-links">
@@ -419,7 +420,7 @@ class VocaBinApp {
       <div class="admin-layout">
         <aside class="admin-sidebar">
           <div class="admin-brand">
-            <img src="./assets/dashboard-logo.svg" alt="VocaBin Admin" class="logo">
+            <img src="/dashboard-logo.svg" alt="VocaBin Admin" class="logo">
             <h2>VocaBin Admin</h2>
           </div>
           <nav class="admin-nav">
