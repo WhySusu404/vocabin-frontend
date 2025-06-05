@@ -12,6 +12,11 @@ export class AuthPage {
     }
 
     render() {
+        if (!this.container) {
+            console.error('AuthPage: Container is undefined');
+            return;
+        }
+        
         this.container.innerHTML = `
             <div class="auth-page">
                 <!-- Header with Logo -->
@@ -141,6 +146,11 @@ export class AuthPage {
         const toggleLink = this.container.querySelector('#authModeToggle');
         const submitBtn = this.container.querySelector('#submitBtn');
         const adminSigninBtn = this.container.querySelector('#adminSigninBtn');
+
+        if (!form || !toggleLink || !submitBtn || !adminSigninBtn) {
+            console.error('AuthPage: Required DOM elements not found');
+            return;
+        }
 
         adminSigninBtn.addEventListener('click', (e) => {
             e.preventDefault();

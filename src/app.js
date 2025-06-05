@@ -36,12 +36,25 @@ class VocaBinApp {
   async waitForShoelace() {
     // Wait for Shoelace components to be defined
     return new Promise((resolve) => {
-      if (customElements.get('sl-button')) {
+      const checkShoelace = () => {
+        // Check for multiple Shoelace components to ensure full loading
+        if (customElements.get('sl-button') && 
+            customElements.get('sl-alert') && 
+            customElements.get('sl-input')) {
+          resolve();
+        } else {
+          // Keep checking every 100ms for up to 5 seconds
+          setTimeout(checkShoelace, 100);
+        }
+      };
+      
+      checkShoelace();
+      
+      // Fallback timeout after 5 seconds
+      setTimeout(() => {
+        console.warn('Shoelace components may not be fully loaded');
         resolve();
-      } else {
-        // Wait a bit for Shoelace to load
-        setTimeout(resolve, 500);
-      }
+      }, 5000);
     });
   }
 
@@ -182,15 +195,17 @@ class VocaBinApp {
     
     authContainer.style.display = 'block';
     
-    // Handle AuthPage specially - it needs the container passed to constructor
-    if (route.component.name === 'AuthPage') {
-      const component = new route.component(authContainer);
-      component.render();
-      this.currentPage = component;
-    } else {
-      // Load and render other auth components normally
-      const component = await this.loadComponent(route.component, route);
-      if (component) {
+    // Load the component properly using loadComponent method
+    const component = await this.loadComponent(route.component, route);
+    if (component) {
+      // Handle AuthPage specially - it needs the container passed to constructor
+      if (component.constructor.name === 'AuthPage') {
+        // AuthPage expects container in constructor, so create new instance with container
+        const authPageComponent = new component.constructor(authContainer);
+        authPageComponent.render();
+        this.currentPage = authPageComponent;
+      } else {
+        // Other auth components render normally
         authContainer.innerHTML = component.render();
         if (component.mount) {
           component.mount();

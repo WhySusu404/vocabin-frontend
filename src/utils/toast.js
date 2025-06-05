@@ -20,13 +20,44 @@ export function showToast(message, variant = 'primary', duration = 3000) {
   // Add to container
   toastContainer.appendChild(toast);
 
-  // Show the toast
-  toast.show();
+  // Wait for element to be defined and connected, then show
+  const showToastWhenReady = () => {
+    if (toast.show && typeof toast.show === 'function') {
+      try {
+        toast.show();
+      } catch (error) {
+        console.error('Error showing toast:', error);
+        // Fallback: just display the toast without animation
+        toast.style.display = 'block';
+      }
+    } else {
+      // Fallback: just display the toast without animation  
+      toast.style.display = 'block';
+    }
+  };
+
+  // Check if component is ready, if not wait a bit
+  if (customElements.get('sl-alert')) {
+    // Element is defined, wait for next tick to ensure it's connected
+    setTimeout(showToastWhenReady, 0);
+  } else {
+    // Wait for Shoelace to load
+    setTimeout(showToastWhenReady, 100);
+  }
 
   // Auto-hide after duration
   if (duration > 0) {
     setTimeout(() => {
-      toast.hide();
+      if (toast.hide && typeof toast.hide === 'function') {
+        try {
+          toast.hide();
+        } catch (error) {
+          console.error('Error hiding toast:', error);
+          toast.remove();
+        }
+      } else {
+        toast.remove();
+      }
     }, duration);
   }
 
