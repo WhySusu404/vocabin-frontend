@@ -17,7 +17,7 @@ const getBackendUrl = () => {
   // If we're on a Netlify domain, use the production backend
   if (hostname.includes('netlify.app') || hostname.includes('vocabin')) {
     // Replace with your actual Render backend URL when deployed
-    return 'https://vocabin-backend.onrender.com/';
+    return 'https://vocabin-backend.onrender.com';
   }
   
   // Default to localhost for development
