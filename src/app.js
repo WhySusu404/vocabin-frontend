@@ -198,8 +198,8 @@ class VocaBinApp {
     });
     
     // Handle AuthPage specially - it needs the container passed to constructor
-    if (route.component && route.component.name === 'AuthPage') {
-      console.log('🔧 Creating AuthPage with container:', authContainer);
+    if (route.path === 'auth') {
+      console.log('🔧 Creating AuthPage with container (detected by route path):', authContainer);
       try {
         const authPageComponent = new route.component(authContainer);
         authPageComponent.render();
