@@ -35,44 +35,14 @@ class VocaBinApp {
 
   async waitForShoelace() {
     // Wait for Shoelace components to be defined
+    console.log('🔄 Starting Shoelace wait...');
+    
     return new Promise((resolve) => {
-      let attempts = 0;
-      const maxAttempts = 100; // 10 seconds with 100ms intervals
-      
-      const checkShoelace = () => {
-        attempts++;
-        
-        const buttonReady = customElements.get('sl-button');
-        const alertReady = customElements.get('sl-alert');
-        const inputReady = customElements.get('sl-input');
-        
-        // Only log every 10th attempt to reduce console spam
-        if (attempts % 10 === 0 || attempts <= 5) {
-          console.log(`🔄 Shoelace check attempt ${attempts}:`, {
-            'sl-button': !!buttonReady,
-            'sl-alert': !!alertReady,
-            'sl-input': !!inputReady
-          });
-        }
-        
-        // Check for multiple Shoelace components to ensure full loading
-        if (buttonReady && alertReady && inputReady) {
-          console.log('✅ All Shoelace components ready');
-          resolve();
-        } else if (attempts >= maxAttempts) {
-          console.warn('⚠️ Proceeding without all Shoelace components after 10 seconds');
-          resolve();
-        } else if (attempts >= 30 && buttonReady) {
-          // After 3 seconds, if we have at least sl-button, proceed
-          console.log('✅ Proceeding with partial Shoelace loading (sl-button ready)');
-          resolve();
-        } else {
-          // Keep checking every 100ms
-          setTimeout(checkShoelace, 100);
-        }
-      };
-      
-      checkShoelace();
+      // Just wait 1 second and proceed - the custom elements check isn't working
+      setTimeout(() => {
+        console.log('⚠️ Proceeding after 1 second timeout (Shoelace may not be ready)');
+        resolve();
+      }, 1000);
     });
   }
 
@@ -189,9 +159,13 @@ class VocaBinApp {
   }
 
   async renderAuthLayout(route) {
+    console.log('🎭 renderAuthLayout called with route:', route);
+    
     // For auth pages, render full-screen without navbar/footer
     const contentDiv = document.getElementById('content');
     const appDiv = document.getElementById('app');
+    
+    console.log('🎯 DOM elements found:', { contentDiv: !!contentDiv, appDiv: !!appDiv });
     
     // Hide the normal content structure
     contentDiv.style.display = 'none';
@@ -209,17 +183,32 @@ class VocaBinApp {
       authContainer.id = 'auth-container';
       authContainer.className = 'auth-container';
       appDiv.appendChild(authContainer);
+      console.log('📦 Created new auth container');
+    } else {
+      console.log('📦 Using existing auth container');
     }
     
     authContainer.style.display = 'block';
     
+    console.log('🔍 Route component details:', {
+      component: route.component,
+      componentName: route.component?.name,
+      componentType: typeof route.component,
+      authContainer: !!authContainer
+    });
+    
     // Handle AuthPage specially - it needs the container passed to constructor
-    if (route.component.name === 'AuthPage') {
+    if (route.component && route.component.name === 'AuthPage') {
       console.log('🔧 Creating AuthPage with container:', authContainer);
-      const authPageComponent = new route.component(authContainer);
-      authPageComponent.render();
-      this.currentPage = authPageComponent;
+      try {
+        const authPageComponent = new route.component(authContainer);
+        authPageComponent.render();
+        this.currentPage = authPageComponent;
+      } catch (error) {
+        console.error('❌ Error creating AuthPage:', error);
+      }
     } else {
+      console.log('🔄 Loading component via loadComponent method');
       // Load and render other auth components normally
       const component = await this.loadComponent(route.component, route);
       if (component) {
