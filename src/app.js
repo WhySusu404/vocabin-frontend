@@ -36,25 +36,43 @@ class VocaBinApp {
   async waitForShoelace() {
     // Wait for Shoelace components to be defined
     return new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 100; // 10 seconds with 100ms intervals
+      
       const checkShoelace = () => {
+        attempts++;
+        
+        const buttonReady = customElements.get('sl-button');
+        const alertReady = customElements.get('sl-alert');
+        const inputReady = customElements.get('sl-input');
+        
+        // Only log every 10th attempt to reduce console spam
+        if (attempts % 10 === 0 || attempts <= 5) {
+          console.log(`🔄 Shoelace check attempt ${attempts}:`, {
+            'sl-button': !!buttonReady,
+            'sl-alert': !!alertReady,
+            'sl-input': !!inputReady
+          });
+        }
+        
         // Check for multiple Shoelace components to ensure full loading
-        if (customElements.get('sl-button') && 
-            customElements.get('sl-alert') && 
-            customElements.get('sl-input')) {
+        if (buttonReady && alertReady && inputReady) {
+          console.log('✅ All Shoelace components ready');
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          console.warn('⚠️ Proceeding without all Shoelace components after 10 seconds');
+          resolve();
+        } else if (attempts >= 30 && buttonReady) {
+          // After 3 seconds, if we have at least sl-button, proceed
+          console.log('✅ Proceeding with partial Shoelace loading (sl-button ready)');
           resolve();
         } else {
-          // Keep checking every 100ms for up to 5 seconds
+          // Keep checking every 100ms
           setTimeout(checkShoelace, 100);
         }
       };
       
       checkShoelace();
-      
-      // Fallback timeout after 5 seconds
-      setTimeout(() => {
-        console.warn('Shoelace components may not be fully loaded');
-        resolve();
-      }, 5000);
     });
   }
 
@@ -195,17 +213,16 @@ class VocaBinApp {
     
     authContainer.style.display = 'block';
     
-    // Load the component properly using loadComponent method
-    const component = await this.loadComponent(route.component, route);
-    if (component) {
-      // Handle AuthPage specially - it needs the container passed to constructor
-      if (component.constructor.name === 'AuthPage') {
-        // AuthPage expects container in constructor, so create new instance with container
-        const authPageComponent = new component.constructor(authContainer);
-        authPageComponent.render();
-        this.currentPage = authPageComponent;
-      } else {
-        // Other auth components render normally
+    // Handle AuthPage specially - it needs the container passed to constructor
+    if (route.component.name === 'AuthPage') {
+      console.log('🔧 Creating AuthPage with container:', authContainer);
+      const authPageComponent = new route.component(authContainer);
+      authPageComponent.render();
+      this.currentPage = authPageComponent;
+    } else {
+      // Load and render other auth components normally
+      const component = await this.loadComponent(route.component, route);
+      if (component) {
         authContainer.innerHTML = component.render();
         if (component.mount) {
           component.mount();
