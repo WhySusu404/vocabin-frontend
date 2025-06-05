@@ -2,6 +2,8 @@
  * Admin User Management Component
  * Clean interface for managing user accounts
  */
+import { API_CONFIG } from '../../config/api.js';
+
 class UserManagement {
   constructor() {
     this.currentPage = 1;
@@ -12,6 +14,11 @@ class UserManagement {
     this.users = [];
     this.totalPages = 1;
     this.editingUser = null;
+    this.sortField = 'createdAt';
+    this.sortDirection = 'desc';
+    this.baseURL = API_CONFIG.BASE_URL;
+    
+    console.log('🔧 UserManagement initialized with baseURL:', this.baseURL);
   }
 
   async render() {
@@ -455,9 +462,8 @@ class UserManagement {
         isActive: this.statusFilter
       });
 
-      // Use full backend URL instead of relative path
-      const backendUrl = 'http://localhost:3000';
-      const apiUrl = `${backendUrl}/api/admin/users?${queryParams}`;
+      // Use configured backend URL instead of hardcoded one
+      const apiUrl = `${this.baseURL}/api/admin/users?${queryParams}`;
       
       // Debug token information - check both possible token keys
       const token = localStorage.getItem('authToken') || localStorage.getItem('token');
@@ -579,9 +585,8 @@ class UserManagement {
     const newStatus = event.target.checked;
     
     try {
-      const backendUrl = 'http://localhost:3000';
       const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-      const response = await fetch(`${backendUrl}/api/admin/users/${userId}/toggle-status`, {
+      const response = await fetch(`${this.baseURL}/api/admin/users/${userId}/toggle-status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

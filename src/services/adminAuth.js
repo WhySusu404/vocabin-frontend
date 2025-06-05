@@ -6,12 +6,14 @@
 import apiService from './api.js';
 import router from '../utils/router.js';
 import { showToast } from '../utils/toast.js';
+import { API_CONFIG } from '../config/api.js';
 
 class AdminAuthService {
     constructor() {
         this.adminUser = null;
         this.isAdminAuthenticated = false;
-        this.baseURL = 'http://localhost:3000/api/admin';
+        this.baseURL = `${API_CONFIG.BASE_URL}/api/admin`;
+        console.log('🔧 AdminAuthService initialized with baseURL:', this.baseURL);
     }
 
     /**

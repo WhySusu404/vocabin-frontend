@@ -4,8 +4,28 @@
  */
 
 // Backend server configuration - use environment variable or fallback to localhost
+// In production, PARCEL_BACKEND_URL should be set to your Render backend URL
+const getBackendUrl = () => {
+  // First check environment variable
+  if (process.env.PARCEL_BACKEND_URL) {
+    return process.env.PARCEL_BACKEND_URL;
+  }
+  
+  // Auto-detect production URLs
+  const hostname = window.location.hostname;
+  
+  // If we're on a Netlify domain, use the production backend
+  if (hostname.includes('netlify.app') || hostname.includes('vocabin')) {
+    // Replace with your actual Render backend URL when deployed
+    return 'https://vocabin-backend.onrender.com/';
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:3000';
+};
+
 export const API_CONFIG = {
-  BASE_URL: process.env.PARCEL_BACKEND_URL || 'http://localhost:3000',
+  BASE_URL: getBackendUrl(),
   ENDPOINTS: {
     // Auth endpoints
     AUTH: '/api/auth',
@@ -22,6 +42,13 @@ export const API_CONFIG = {
     WRONG_WORDS: '/api/wrong-words'
   }
 };
+
+// Log the configuration for debugging
+console.log('🔗 API Configuration:', {
+  baseUrl: API_CONFIG.BASE_URL,
+  hostname: window.location.hostname,
+  envVar: process.env.PARCEL_BACKEND_URL
+});
 
 /**
  * Helper function to build full API URLs

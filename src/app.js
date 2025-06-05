@@ -112,16 +112,14 @@ class VocaBinApp {
       
       // Check admin route protection
       if (toRoute.requiresAdmin) {
-        console.log('🔐 Checking admin authentication for protected route');
         const isAdminAuthenticated = adminAuthService.isAuthenticated();
         console.log('🔐 Admin auth result:', isAdminAuthenticated);
         
         if (!isAdminAuthenticated) {
-          console.log('❌ Admin not authenticated, redirecting to admin login');
           router.navigate('admin', { replace: true });
           return false;
         } else {
-          console.log('✅ Admin authenticated, allowing access to', toRoute.path);
+          console.error('✅ Admin authenticated, allowing access to', toRoute.path);
         }
       }
       

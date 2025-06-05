@@ -1,7 +1,9 @@
 // API service for backend communication
+import { API_CONFIG } from '../config/api.js';
+
 class ApiService {
   constructor() {
-    this.baseURL = 'http://localhost:3000';
+    this.baseURL = API_CONFIG.BASE_URL;
     this.useMockAuth = false; // Set to true for testing without backend
     this.isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     this.storage = this.isDevelopment ? sessionStorage : localStorage;
@@ -9,7 +11,7 @@ class ApiService {
     // For development, also try localStorage as fallback for better persistence across hot reloads
     this.devStorage = this.isDevelopment ? localStorage : this.storage;
     
-    // Try to get token from multiple sources in development
+    // Try to get token from multiple sources
     this.token = this.getPersistedToken();
     this.refreshToken = this.storage.getItem('refreshToken') || this.devStorage.getItem('refreshToken');
     
@@ -17,6 +19,8 @@ class ApiService {
     if (this.isDevelopment && this.token) {
       this.startTokenRefreshTimer();
     }
+    
+    console.log('🔧 ApiService initialized with baseURL:', this.baseURL);
   }
 
   // Development-friendly token retrieval with fallback

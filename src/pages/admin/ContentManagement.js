@@ -1,5 +1,6 @@
 import adminAuthService from '../../services/adminAuth.js';
 import { showToast } from '../../utils/toast.js';
+import { API_CONFIG } from '../../config/api.js';
 
 export default class ContentManagementPage {
   constructor() {
@@ -10,6 +11,9 @@ export default class ContentManagementPage {
       listening: [],
       reading: []
     };
+    this.baseURL = API_CONFIG.BASE_URL;
+    
+    console.log('🔧 ContentManagement initialized with baseURL:', this.baseURL);
   }
 
   async render() {
@@ -247,7 +251,7 @@ export default class ContentManagementPage {
       console.log('🔄 Loading real content data from API...');
       
       // Load real dictionary files from backend
-      const response = await fetch('http://localhost:3000/api/admin/dictionaries', {
+      const response = await fetch(`${this.baseURL}/api/admin/dictionaries`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -579,7 +583,7 @@ export default class ContentManagementPage {
         uploadData.append('category', formData.category || 'General');
         uploadData.append('difficulty', formData.difficulty || 'intermediate');
         
-        const response = await fetch('http://localhost:3000/api/admin/dictionaries/upload', {
+        const response = await fetch(`${this.baseURL}/api/admin/dictionaries/upload`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -682,7 +686,7 @@ export default class ContentManagementPage {
       try {
         console.log('🔄 Deleting dictionary file:', contentId);
         
-        const response = await fetch(`http://localhost:3000/api/admin/dictionaries/${contentId}`, {
+        const response = await fetch(`${this.baseURL}/api/admin/dictionaries/${contentId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

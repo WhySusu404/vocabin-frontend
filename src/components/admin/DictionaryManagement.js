@@ -2,6 +2,8 @@
  * Admin Dictionary Management Component
  * Interface for uploading and managing dictionary files
  */
+import { API_CONFIG } from '../../config/api.js';
+
 class DictionaryManagement {
   constructor() {
     this.currentPage = 1;
@@ -13,6 +15,9 @@ class DictionaryManagement {
     this.totalPages = 1;
     this.uploadMode = false;
     this.previewData = null;
+    this.baseURL = API_CONFIG.BASE_URL;
+    
+    console.log('🔧 DictionaryManagement initialized with baseURL:', this.baseURL);
   }
 
   async render() {
@@ -313,9 +318,8 @@ class DictionaryManagement {
         difficulty: this.difficultyFilter
       });
 
-      const backendUrl = 'http://localhost:3000';
       const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-      const response = await fetch(`${backendUrl}/api/admin/dictionaries?${queryParams}`, {
+      const response = await fetch(`${this.baseURL}/api/admin/dictionaries?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -501,9 +505,8 @@ class DictionaryManagement {
     uploadBtn.loading = true;
 
     try {
-      const backendUrl = 'http://localhost:3000';
       const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-      const response = await fetch(`${backendUrl}/api/admin/dictionaries/upload`, {
+      const response = await fetch(`${this.baseURL}/api/admin/dictionaries/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -549,9 +552,8 @@ class DictionaryManagement {
     const newStatus = event.target.checked;
     
     try {
-      const backendUrl = 'http://localhost:3000';
       const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-      const response = await fetch(`${backendUrl}/api/admin/dictionaries/${dictId}/toggle-status?source=${source}`, {
+      const response = await fetch(`${this.baseURL}/api/admin/dictionaries/${dictId}/toggle-status?source=${source}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -618,9 +620,8 @@ class DictionaryManagement {
     
     if (confirm(warningText)) {
       try {
-        const backendUrl = 'http://localhost:3000';
         const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-        const response = await fetch(`${backendUrl}/api/admin/dictionaries/${dictId}?source=${source}`, {
+        const response = await fetch(`${this.baseURL}/api/admin/dictionaries/${dictId}?source=${source}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
