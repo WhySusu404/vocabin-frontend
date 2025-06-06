@@ -477,7 +477,12 @@ export default class VocabularyPage {
     if (this.session.isActive) return;
 
     this.session.isActive = true;
-    this.startTime = Date.now() - (this.session.timeElapsed * 1000); // Account for restored time
+    
+    // Cap restored time to prevent unrealistic values (max 24 hours)
+    const maxTimeElapsed = 24 * 60 * 60; // 24 hours in seconds
+    const cappedTimeElapsed = Math.min(this.session.timeElapsed, maxTimeElapsed);
+    
+    this.startTime = Date.now() - (cappedTimeElapsed * 1000); // Account for restored time
     
     // Hide start message, show practice area
     const startMessage = document.querySelector('.start-message');
@@ -996,9 +1001,19 @@ export default class VocabularyPage {
   }
 
   formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    // Cap the maximum time at 24 hours to prevent unrealistic values
+    const maxSeconds = 24 * 60 * 60; // 24 hours
+    const clampedSeconds = Math.min(seconds, maxSeconds);
+    
+    const hours = Math.floor(clampedSeconds / 3600);
+    const minutes = Math.floor((clampedSeconds % 3600) / 60);
+    const remainingSeconds = clampedSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
   }
 
   showErrorMessage(message) {
@@ -1064,8 +1079,12 @@ export default class VocabularyPage {
       }
       
       // Restore session state
+      // Cap time to prevent unrealistic values (max 24 hours)
+      const maxTimeElapsed = 24 * 60 * 60; // 24 hours in seconds
+      const cappedTimeElapsed = Math.min(sessionData.timeElapsed || 0, maxTimeElapsed);
+      
       this.session = {
-        timeElapsed: sessionData.timeElapsed || 0,
+        timeElapsed: cappedTimeElapsed,
         inputCount: sessionData.inputCount || 0,
         correctCount: sessionData.correctCount || 0,
         wrongCount: sessionData.wrongCount || 0,
