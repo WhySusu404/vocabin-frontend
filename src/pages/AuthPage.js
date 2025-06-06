@@ -1,9 +1,8 @@
 import { showToast } from '../utils/toast.js';
 import apiService from '../services/api.js';
 import router from '../utils/router.js';
-// import logoSvgUrl from 'url:../assets/login-logo.svg';
-// Changed to direct path instead of module import for PNG
-// import loginPngUrl from 'url:../assets/login.png';
+import logoSvgUrl from 'url:../assets/login-logo.svg';
+import loginPngUrl from 'url:../assets/login.png';
 
 export class AuthPage {
     constructor(container) {
@@ -22,7 +21,7 @@ export class AuthPage {
                 <!-- Header with Logo -->
                 <div class="auth-header">
                     <div class="logo-container">
-                        <img src="/login-logo.svg" alt="VocaBin" class="auth-logo">
+                        <img src="${logoSvgUrl}" alt="VocaBin" class="auth-logo">
                     </div>
                 </div>
 
@@ -129,7 +128,7 @@ export class AuthPage {
                     <!-- Right Side - Illustration -->
                     <div class="auth-illustration-section">
                         <div class="illustration-container">
-                            <img src="/login.png" alt="Learning Illustration" class="auth-illustration" />
+                            <img src="${loginPngUrl}" alt="Learning Illustration" class="auth-illustration" />
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 import router from './utils/router.js';
 import { showToast } from './utils/toast.js';
 import './styles/main.css';
+import dashboardLogoUrl from 'url:./assets/dashboard-logo.svg';
 
 class VocaBinApp {
   constructor() {
@@ -439,7 +440,7 @@ class VocaBinApp {
       <div class="admin-layout">
         <aside class="admin-sidebar">
           <div class="admin-brand">
-            <img src="/dashboard-logo.svg" alt="VocaBin Admin" class="logo">
+            <img src="${dashboardLogoUrl}" alt="VocaBin Admin" class="logo">
             <h2>VocaBin Admin</h2>
           </div>
           <nav class="admin-nav">
