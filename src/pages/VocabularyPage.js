@@ -211,8 +211,20 @@ export default class VocabularyPage {
           console.log('🔍 DEBUG: Got progress from getCurrentWord:', this.progress);
         }
       } catch (error) {
-        console.log('🔍 DEBUG: getCurrentWord also failed:', error);
-        // Still proceed, we'll get progress when user starts practice
+        console.log('🔍 DEBUG: getCurrentWord failed during initialization (normal for new users):', error);
+        // Don't throw - this is expected for users who haven't started this dictionary
+        // Set default progress for fresh users
+        this.progress = {
+          overall: {
+            completed_words: 0,
+            accuracy_rate: 0,
+            correct_answers: 0,
+            wrong_answers: 0,
+            status: 'not_started',
+            current_position: 0
+          }
+        };
+        console.log('🔍 DEBUG: Set default progress for new user');
       }
     }
     

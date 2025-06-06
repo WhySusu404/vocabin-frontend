@@ -182,10 +182,29 @@ class VocabularyService {
    */
   async getCurrentWord(dictionaryId) {
     try {
+      console.log('🔍 DEBUG: getCurrentWord called with dictionaryId:', dictionaryId);
+      
+      if (!dictionaryId) {
+        throw new Error('Dictionary ID is required');
+      }
+      
       const response = await this.api.request(`/api/user/dictionaries/${dictionaryId}/current-word`);
+      console.log('✅ DEBUG: getCurrentWord success:', response);
       return response;
     } catch (error) {
-      console.error('Failed to get current word:', error);
+      console.error('❌ Failed to get current word:', error);
+      
+      // Provide more specific error information
+      if (error.message.includes('500')) {
+        throw new Error('Backend server error - please contact support or try again later');
+      } else if (error.message.includes('404')) {
+        throw new Error('Dictionary not found or no current word available');
+      } else if (error.message.includes('401') || error.message.includes('403')) {
+        throw new Error('Authentication required - please log in again');
+      } else if (error.message.includes('Network')) {
+        throw new Error('Network connection issue - please check your internet');
+      }
+      
       throw error;
     }
   }
