@@ -573,6 +573,13 @@ export default class VocabularyPage {
         feedback.className = 'word-feedback';
       }
       
+      // Auto-play audio when word loads if audio is enabled
+      if (this.audioEnabled) {
+        setTimeout(() => {
+          this.playCurrentAudio();
+        }, 500); // Small delay to ensure UI is ready
+      }
+      
       // Save session state
       this.saveSessionState();
       

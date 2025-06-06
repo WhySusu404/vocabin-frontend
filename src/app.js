@@ -377,7 +377,7 @@ class VocaBinApp {
           <div class="nav-container">
             <div class="nav-brand">
               <a href="#dashboard" class="logo-link">
-                <img src="/dashboard-logo.svg" alt="VocaBin Logo" class="logo">
+                <img src="${dashboardLogoUrl}" alt="VocaBin Logo" class="logo">
               </a>
             </div>
             <div class="nav-links">
